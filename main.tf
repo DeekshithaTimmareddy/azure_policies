@@ -22,10 +22,20 @@
 #   subscription-owners           azurerm_role_assignment                ACTIVE ✓
 
 terraform {
+  required_version = ">= 1.9.0"
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
+    }
+  }
+
+  cloud {
+    organization = "nagateja-test-org"
+
+    workspaces {
+      name = "azure_testing"
     }
   }
 }
