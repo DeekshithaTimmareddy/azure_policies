@@ -359,32 +359,28 @@ provider "azurerm" {
 # }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ACTIVE — subscription-owners (IAM policy)
+# COMMENTED OUT — subscription-owners (IAM policy)
 #
-# Policy  : subscription must have between 2 and 3 Owner role assignments.
-# Subscription : timmareddy-azure-test (b4c6e83c-e900-42e9-ae40-f5d42244f50f)
-# Tenant       : 237fbc04-c52a-458b-af97-eaf7157c0cd4
+# Policy     : subscription must have between 2 and 3 Owner role assignments.
+# Subscription: timmareddy-azure-test (b4c6e83c-e900-42e9-ae40-f5d42244f50f)
+# Tenant      : 237fbc04-c52a-458b-af97-eaf7157c0cd4
 #
-# Both assignments ALREADY EXIST in Azure.
-# Run these two import commands ONCE before pushing to avoid a 403 on apply:
-#
-#   terraform import azurerm_role_assignment.owner_one \
-#     /subscriptions/b4c6e83c-e900-42e9-ae40-f5d42244f50f/providers/Microsoft.Authorization/roleAssignments/e1617e29-8444-489f-9062-474bd3f92ee2
-#
-#   terraform import azurerm_role_assignment.owner_two \
-#     /subscriptions/b4c6e83c-e900-42e9-ae40-f5d42244f50f/providers/Microsoft.Authorization/roleAssignments/7d1f1379-60c7-443d-a189-ad214126c6f4
+# STATUS: TESTED & PASSED ✅ (run-Bi7PrJ5bk4ApcnUJ)
+# Both assignments exist in Azure but are NOT managed by Terraform state.
+# The HCP Terraform SP only has Contributor — cannot write/delete role assignments.
+# Use terraform import + state rm pattern if re-testing is needed.
 # ─────────────────────────────────────────────────────────────────────────────
 
-# owner_one — ServicePrincipal: 7bb30395-4c24-467b-b316-c3a61e09a2d3
-resource "azurerm_role_assignment" "owner_one" {
-  scope                = "/subscriptions/b4c6e83c-e900-42e9-ae40-f5d42244f50f"
-  role_definition_name = "Owner"
-  principal_id         = "2dbc65dc-5ad7-4ddf-8797-09407b8c3af9"
-}
-
-# owner_two — Group: admin-b4c6e83c-e900-42e9-ae40-f5d42244f50f
-resource "azurerm_role_assignment" "owner_two" {
-  scope                = "/subscriptions/b4c6e83c-e900-42e9-ae40-f5d42244f50f"
-  role_definition_name = "Owner"
-  principal_id         = "1bc1fa47-d8a0-4e70-93cf-e3b0a2e56ab2"
-}
+# # owner_one — ServicePrincipal: 7bb30395-4c24-467b-b316-c3a61e09a2d3
+# resource "azurerm_role_assignment" "owner_one" {
+#   scope                = "/subscriptions/b4c6e83c-e900-42e9-ae40-f5d42244f50f"
+#   role_definition_name = "Owner"
+#   principal_id         = "2dbc65dc-5ad7-4ddf-8797-09407b8c3af9"
+# }
+#
+# # owner_two — Group: admin-b4c6e83c-e900-42e9-ae40-f5d42244f50f
+# resource "azurerm_role_assignment" "owner_two" {
+#   scope                = "/subscriptions/b4c6e83c-e900-42e9-ae40-f5d42244f50f"
+#   role_definition_name = "Owner"
+#   principal_id         = "1bc1fa47-d8a0-4e70-93cf-e3b0a2e56ab2"
+# }
