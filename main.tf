@@ -377,10 +377,9 @@ provider "azurerm" {
 
 # owner_one — ServicePrincipal: 7bb30395-4c24-467b-b316-c3a61e09a2d3
 resource "azurerm_role_assignment" "owner_one" {
-  scope                            = "/subscriptions/b4c6e83c-e900-42e9-ae40-f5d42244f50f"
-  role_definition_name             = "Owner"
-  principal_id                     = "2dbc65dc-5ad7-4ddf-8797-09407b8c3af9"
-  skip_service_principal_aad_check = true
+  scope                = "/subscriptions/b4c6e83c-e900-42e9-ae40-f5d42244f50f"
+  role_definition_name = "Owner"
+  principal_id         = "2dbc65dc-5ad7-4ddf-8797-09407b8c3af9"
 }
 
 # owner_two — Group: admin-b4c6e83c-e900-42e9-ae40-f5d42244f50f
