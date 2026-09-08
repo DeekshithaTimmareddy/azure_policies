@@ -16,10 +16,10 @@
 #   storage-secure-transfer       azurerm_storage_account                commented
 #   storage-tls12                 azurerm_storage_account                commented
 #   trusted-services              azurerm_storage_account + network_rules commented
-#   http-internet-restrict        azurerm_network_security_group         commented
-#   rdp-internet-restrict         azurerm_network_security_group         commented
-#   udp-port-access-restrict      azurerm_network_security_group + rule  commented
-#   subscription-owners           azurerm_role_assignment                ACTIVE ✓
+#   http-internet-restrict        azurerm_network_security_group         ACTIVE ✓
+#   rdp-internet-restrict         azurerm_network_security_group         ACTIVE ✓
+#   udp-port-access-restrict      azurerm_network_security_group + rule  ACTIVE ✓
+#   subscription-owners           azurerm_role_assignment                commented
 
 terraform {
   required_version = ">= 1.9.0"
@@ -47,26 +47,30 @@ provider "azurerm" {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Shared scaffold — required by NSG resources
+# ─────────────────────────────────────────────────────────────────────────────
+
+variable "location" {
+  description = "Azure region for all resources."
+  type        = string
+  default     = "East US"
+}
+
+variable "resource_group_name" {
+  description = "Resource group that holds all test resources."
+  type        = string
+  default     = "policy-testing-rg"
+}
+
+resource "azurerm_resource_group" "rg" {
+  name     = var.resource_group_name
+  location = var.location
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # COMMENTED OUT — Storage account resources (all storage-account policies)
 # Uncomment this section when testing storage-account policies.
 # ─────────────────────────────────────────────────────────────────────────────
-
-# variable "location" {
-#   description = "Azure region for all resources."
-#   type        = string
-#   default     = "East US"
-# }
-#
-# variable "resource_group_name" {
-#   description = "Resource group that holds all test resources."
-#   type        = string
-#   default     = "policy-testing-rg"
-# }
-#
-# resource "azurerm_resource_group" "rg" {
-#   name     = var.resource_group_name
-#   location = var.location
-# }
 
 # # COMPLIANT storage account — satisfies all 12 storage-account policies
 # resource "azurerm_storage_account" "compliant" {
@@ -76,20 +80,20 @@ provider "azurerm" {
 #   account_tier             = "Standard"
 #   account_replication_type = "LRS"
 #   account_kind             = "StorageV2"
-#   allow_nested_items_to_be_public  = false   # blob-anonymous-disabled
-#   cross_tenant_replication_enabled = false   # cross-tenant-replication
-#   default_to_oauth_authentication  = true    # default-entra-auth
-#   shared_access_key_enabled        = false   # disable-shared-key
-#   public_network_access_enabled    = false   # storage-no-public
-#   https_traffic_only_enabled       = true    # storage-secure-transfer
+#   allow_nested_items_to_be_public  = false    # blob-anonymous-disabled
+#   cross_tenant_replication_enabled = false    # cross-tenant-replication
+#   default_to_oauth_authentication  = true     # default-entra-auth
+#   shared_access_key_enabled        = false    # disable-shared-key
+#   public_network_access_enabled    = false    # storage-no-public
+#   https_traffic_only_enabled       = true     # storage-secure-transfer
 #   min_tls_version                  = "TLS1_2" # storage-tls12
 #   blob_properties {
-#     versioning_enabled = true                # blob-versioning
-#     delete_retention_policy { days = 7 }     # blob-soft-delete
+#     versioning_enabled = true              # blob-versioning
+#     delete_retention_policy { days = 7 }   # blob-soft-delete
 #   }
 #   share_properties {
-#     retention_policy { days = 7 }            # file-share-soft-delete
-#     smb { channel_encryption_type = ["AES-256-GCM"] } # smb-aes256-encryption
+#     retention_policy { days = 7 }                              # file-share-soft-delete
+#     smb { channel_encryption_type = ["AES-256-GCM"] }          # smb-aes256-encryption
 #   }
 # }
 #
@@ -255,108 +259,111 @@ provider "azurerm" {
 # }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# COMMENTED OUT — Network Security Group resources (NSG policies)
-# Uncomment this section when testing NSG policies.
-# Requires azurerm_resource_group.rg — also uncomment the scaffold above.
+# Network Security Group resources — exercises 3 NSG policies
 # ─────────────────────────────────────────────────────────────────────────────
 
-# # COMPLIANT NSG — no Internet-facing HTTP, RDP, or restricted UDP
-# resource "azurerm_network_security_group" "compliant" {
-#   name                = "compliant-nsg"
-#   location            = azurerm_resource_group.rg.location
-#   resource_group_name = azurerm_resource_group.rg.name
-#   security_rule {
-#     name                       = "allow-https-internal"
-#     priority                   = 100
-#     direction                  = "Inbound"
-#     access                     = "Allow"
-#     protocol                   = "Tcp"
-#     source_port_range          = "*"
-#     destination_port_range     = "443"
-#     source_address_prefix      = "10.0.0.0/8"
-#     destination_address_prefix = "*"
-#   }
-#   security_rule {
-#     name                       = "deny-all-inbound"
-#     priority                   = 4096
-#     direction                  = "Inbound"
-#     access                     = "Deny"
-#     protocol                   = "*"
-#     source_port_range          = "*"
-#     destination_port_range     = "*"
-#     source_address_prefix      = "*"
-#     destination_address_prefix = "*"
-#   }
-# }
-#
-# # http-internet-restrict: VIOLATION — port 80 open to Internet
-# resource "azurerm_network_security_group" "fail_http" {
-#   name                = "fail-http-nsg"
-#   location            = azurerm_resource_group.rg.location
-#   resource_group_name = azurerm_resource_group.rg.name
-#   security_rule {
-#     name                       = "allow-http-internet"
-#     priority                   = 100
-#     direction                  = "Inbound"
-#     access                     = "Allow"
-#     protocol                   = "Tcp"
-#     source_port_range          = "*"
-#     destination_port_range     = "80"
-#     source_address_prefix      = "Internet"
-#     destination_address_prefix = "*"
-#   }
-# }
-#
-# # rdp-internet-restrict: VIOLATION — RDP port 3389 open to Internet
-# resource "azurerm_network_security_group" "fail_rdp" {
-#   name                = "fail-rdp-nsg"
-#   location            = azurerm_resource_group.rg.location
-#   resource_group_name = azurerm_resource_group.rg.name
-#   security_rule {
-#     name                       = "allow-rdp-internet"
-#     priority                   = 100
-#     direction                  = "Inbound"
-#     access                     = "Allow"
-#     protocol                   = "Tcp"
-#     source_port_range          = "*"
-#     destination_port_range     = "3389"
-#     source_address_prefix      = "0.0.0.0/0"
-#     destination_address_prefix = "*"
-#   }
-# }
-#
-# # udp-port-access-restrict: VIOLATION — UDP port 53 (DNS) open to Internet (inline)
-# resource "azurerm_network_security_group" "fail_udp" {
-#   name                = "fail-udp-nsg"
-#   location            = azurerm_resource_group.rg.location
-#   resource_group_name = azurerm_resource_group.rg.name
-#   security_rule {
-#     name                       = "allow-udp-dns-internet"
-#     priority                   = 100
-#     direction                  = "Inbound"
-#     access                     = "Allow"
-#     protocol                   = "Udp"
-#     source_port_range          = "*"
-#     destination_port_range     = "53"
-#     source_address_prefix      = "*"
-#     destination_address_prefix = "*"
-#   }
-# }
-#
-# # udp-port-access-restrict: VIOLATION — UDP port 123 (NTP) open via standalone rule
-# resource "azurerm_network_security_rule" "fail_udp_standalone" {
-#   name                        = "allow-udp-ntp-internet"
-#   priority                    = 200
-#   direction                   = "Inbound"
-#   access                      = "Allow"
-#   protocol                    = "Udp"
-#   source_port_range           = "*"
-#   destination_port_range      = "123"
-#   source_address_prefix       = "0.0.0.0/0"
-#   destination_address_prefix  = "*"
-#   resource_group_name         = azurerm_resource_group.rg.name
-#   network_security_group_name = azurerm_network_security_group.fail_udp.name
-# }
+# COMPLIANT NSG — no Internet-facing HTTP, RDP, or unrestricted UDP
+resource "azurerm_network_security_group" "compliant" {
+  name                = "compliant-nsg"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  security_rule {
+    name                       = "allow-https-internal"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "443"
+    source_address_prefix      = "10.0.0.0/8"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "deny-all-inbound"
+    priority                   = 4096
+    direction                  = "Inbound"
+    access                     = "Deny"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+# http-internet-restrict: VIOLATION — port 80 open to Internet
+resource "azurerm_network_security_group" "fail_http" {
+  name                = "fail-http-nsg"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  security_rule {
+    name                       = "allow-http-internet"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "80"
+    source_address_prefix      = "Internet"
+    destination_address_prefix = "*"
+  }
+}
+
+# rdp-internet-restrict: VIOLATION — RDP port 3389 open to Internet
+resource "azurerm_network_security_group" "fail_rdp" {
+  name                = "fail-rdp-nsg"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  security_rule {
+    name                       = "allow-rdp-internet"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3389"
+    source_address_prefix      = "0.0.0.0/0"
+    destination_address_prefix = "*"
+  }
+}
+
+# udp-port-access-restrict: VIOLATION — UDP port 53 (DNS) open to Internet (inline rule)
+resource "azurerm_network_security_group" "fail_udp" {
+  name                = "fail-udp-nsg"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  security_rule {
+    name                       = "allow-udp-dns-internet"
+    priority                   = 100
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Udp"
+    source_port_range          = "*"
+    destination_port_range     = "53"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
+
+# udp-port-access-restrict: VIOLATION — UDP port 123 (NTP) open via standalone rule
+resource "azurerm_network_security_rule" "fail_udp_standalone" {
+  name                        = "allow-udp-ntp-internet"
+  priority                    = 200
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Udp"
+  source_port_range           = "*"
+  destination_port_range      = "123"
+  source_address_prefix       = "0.0.0.0/0"
+  destination_address_prefix  = "*"
+  resource_group_name         = azurerm_resource_group.rg.name
+  network_security_group_name = azurerm_network_security_group.fail_udp.name
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # COMMENTED OUT — subscription-owners (IAM policy)
