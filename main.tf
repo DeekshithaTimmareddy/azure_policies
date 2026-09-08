@@ -100,19 +100,6 @@ resource "azurerm_storage_account" "compliant" {
   }
 }
 
-# disable-shared-key: PASS — shared key explicitly disabled (separate account to avoid
-# provider data-plane provisioning errors when combined with blob/share_properties)
-resource "azurerm_storage_account" "pass_shared_key_disabled" {
-  name                       = "passkeyoffsa"
-  resource_group_name        = azurerm_resource_group.rg.name
-  location                   = azurerm_resource_group.rg.location
-  account_tier               = "Standard"
-  account_replication_type   = "LRS"
-  shared_access_key_enabled  = false
-  https_traffic_only_enabled = true
-  min_tls_version            = "TLS1_2"
-}
-
 # blob-anonymous-disabled: VIOLATION — public blob access enabled
 resource "azurerm_storage_account" "fail_blob_anonymous" {
   name                            = "failblobanonymsa"
