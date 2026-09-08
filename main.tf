@@ -71,7 +71,9 @@ resource "azurerm_resource_group" "rg" {
 # Storage account resources — exercises all 12 storage-account policies
 # ─────────────────────────────────────────────────────────────────────────────
 
-# COMPLIANT storage account — satisfies all 12 storage-account policies
+# COMPLIANT storage account — satisfies all storage policies except disable-shared-key
+# (shared_access_key_enabled=false blocks provider data-plane calls during provisioning;
+#  that policy is covered by pass_shared_key_disabled below instead)
 resource "azurerm_storage_account" "compliant" {
   name                     = "compliantpolicysa"
   resource_group_name      = azurerm_resource_group.rg.name
@@ -83,7 +85,6 @@ resource "azurerm_storage_account" "compliant" {
   allow_nested_items_to_be_public  = false    # blob-anonymous-disabled
   cross_tenant_replication_enabled = false    # cross-tenant-replication
   default_to_oauth_authentication  = true     # default-entra-auth
-  shared_access_key_enabled        = false    # disable-shared-key
   public_network_access_enabled    = false    # storage-no-public
   https_traffic_only_enabled       = true     # storage-secure-transfer
   min_tls_version                  = "TLS1_2" # storage-tls12
@@ -97,6 +98,19 @@ resource "azurerm_storage_account" "compliant" {
     retention_policy { days = 7 }                    # file-share-soft-delete
     smb { channel_encryption_type = ["AES-256-GCM"] } # smb-aes256-encryption
   }
+}
+
+# disable-shared-key: PASS — shared key explicitly disabled (separate account to avoid
+# provider data-plane provisioning errors when combined with blob/share_properties)
+resource "azurerm_storage_account" "pass_shared_key_disabled" {
+  name                       = "passkeyoffsa"
+  resource_group_name        = azurerm_resource_group.rg.name
+  location                   = azurerm_resource_group.rg.location
+  account_tier               = "Standard"
+  account_replication_type   = "LRS"
+  shared_access_key_enabled  = false
+  https_traffic_only_enabled = true
+  min_tls_version            = "TLS1_2"
 }
 
 # blob-anonymous-disabled: VIOLATION — public blob access enabled
