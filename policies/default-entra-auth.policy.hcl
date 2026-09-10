@@ -11,13 +11,18 @@ policy {
   }
 }
 
+input "default-entra-auth-enforcement-level" {
+  type    = string
+  default = "advisory"
+}
+
 resource_policy "azurerm_storage_account" "default_entra_authorization_enabled" {
   locals {
     default_to_oauth_authentication_raw = core::try(attrs.default_to_oauth_authentication, null)
     default_to_oauth_authentication     = local.default_to_oauth_authentication_raw == null ? false : local.default_to_oauth_authentication_raw
   }
 
-  enforcement_level = "advisory"
+  enforcement_level = input.default-entra-auth-enforcement-level
   enforce {
     condition     = local.default_to_oauth_authentication == true
     error_message = "Storage accounts must set default_to_oauth_authentication to true to default Azure portal access to Microsoft Entra authorization."

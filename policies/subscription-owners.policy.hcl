@@ -11,9 +11,11 @@ policy {
   }
 }
 
-# LIMITATION: The count includes only azurerm_role_assignment resources visible to
-# the current tfpolicy evaluation. It cannot discover role assignments managed
-# outside Terraform or subscriptions represented by no role assignment resource.
+input "subscription-owners-enforcement-level" {
+  type    = string
+  default = "advisory"
+}
+
 resource_policy "azurerm_role_assignment" "subscription_owner_count" {
   locals {
     scope_raw          = core::try(attrs.scope, null)
@@ -32,7 +34,7 @@ resource_policy "azurerm_role_assignment" "subscription_owner_count" {
 
   filter = local.is_subscription && local.is_owner
 
-  enforcement_level = "advisory"
+  enforcement_level = input.subscription-owners-enforcement-level
   enforce {
     condition     = local.compliant
     error_message = "A subscription must have between 2 and 3 Owner role assignments. Add or remove subscription-scoped Owner assignments to meet this range."

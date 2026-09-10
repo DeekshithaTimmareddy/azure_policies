@@ -202,14 +202,14 @@ resource "azurerm_network_security_group" "fail_wildcard_destination_port" {
   }
 }
 
-resource "azurerm_network_security_group" "fail_any_source_prefix" {
+resource "azurerm_network_security_group" "fail_wildcard_source_prefix" {
   expect_failure = true
   attrs = {
-    name                = "any-source-https"
+    name                = "wildcard-source-https"
     location            = "eastus"
     resource_group_name = "example-resource-group"
     security_rule = [{
-      name                       = "allow-any-source-https"
+      name                       = "allow-wildcard-source-https"
       priority                   = 180
       direction                  = "Inbound"
       access                     = "Allow"
@@ -217,7 +217,7 @@ resource "azurerm_network_security_group" "fail_any_source_prefix" {
       source_port_range          = "*"
       destination_port_range     = "443"
       destination_port_ranges    = []
-      source_address_prefix      = "Any"
+      source_address_prefix      = "*"
       source_address_prefixes    = []
       destination_address_prefix = "*"
     }]

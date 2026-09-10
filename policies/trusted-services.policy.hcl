@@ -11,12 +11,15 @@ policy {
   }
 }
 
-# NOTE: Standalone azurerm_storage_account_network_rules lookups that depend on a newly
-# created storage account ID resolve during apply rather than during plan evaluation.
+input "trusted-services-enforcement-level" {
+  type    = string
+  default = "advisory"
+}
+
 resource_policy "azurerm_storage_account" "allow_trusted_microsoft_services" {
   locals {
-    public_network_access_raw = core::try(attrs.public_network_access, null)
-    public_network_access     = local.public_network_access_raw == null ? "Enabled" : local.public_network_access_raw
+    public_network_access_enabled_raw = core::try(attrs.public_network_access_enabled, null)
+    public_network_access_enabled     = local.public_network_access_enabled_raw == null ? true : local.public_network_access_enabled_raw
 
     inline_rules         = core::try(attrs.network_rules, null)
     has_inline_rules     = local.inline_rules != null
@@ -31,13 +34,13 @@ resource_policy "azurerm_storage_account" "allow_trusted_microsoft_services" {
     standalone_bypass     = local.standalone_bypass_raw != null ? local.standalone_bypass_raw : []
 
     configuration_valid  = !(local.has_inline_rules && local.has_standalone_rules)
-    inline_in_scope     = local.public_network_access == "Enabled" && local.has_inline_rules && local.inline_default == "Deny"
-    standalone_in_scope = local.public_network_access == "Enabled" && !local.has_inline_rules && local.has_standalone_rules && local.standalone_default == "Deny"
+    inline_in_scope     = local.public_network_access_enabled && local.has_inline_rules && local.inline_default == "Deny"
+    standalone_in_scope = local.public_network_access_enabled && !local.has_inline_rules && local.has_standalone_rules && local.standalone_default == "Deny"
     in_scope            = local.inline_in_scope || local.standalone_in_scope
     trusted_services    = local.inline_in_scope ? core::contains(local.inline_bypass, "AzureServices") : core::contains(local.standalone_bypass, "AzureServices")
   }
 
-  enforcement_level = "advisory"
+  enforcement_level = input.trusted-services-enforcement-level
   enforce {
     condition     = local.configuration_valid
     error_message = "Storage account must not define both inline network_rules and a standalone azurerm_storage_account_network_rules resource simultaneously — use one or the other."

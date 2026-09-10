@@ -219,22 +219,21 @@ resource "azurerm_network_security_group" "fail_wildcard_destination_port" {
   }
 }
 
-# FAIL: source_address_prefix = "Any" is a valid Azure tag meaning entire internet.
-resource "azurerm_network_security_group" "fail_any_source_prefix" {
+resource "azurerm_network_security_group" "fail_wildcard_source_prefix" {
   expect_failure = true
   attrs = {
-    name                = "fail-any-source"
+    name                = "fail-wildcard-source"
     location            = "East US"
     resource_group_name = "validation-resource-group"
     security_rule = [{
-      name                       = "public-rdp-any-source"
+      name                       = "public-rdp-wildcard-source"
       priority                   = 100
       direction                  = "Inbound"
       access                     = "Allow"
       protocol                   = "Tcp"
       source_port_range          = "*"
       destination_port_range     = "3389"
-      source_address_prefix      = "Any"
+      source_address_prefix      = "*"
       destination_address_prefix = "*"
     }]
   }

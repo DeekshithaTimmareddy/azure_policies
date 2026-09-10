@@ -15,8 +15,9 @@ resource "azurerm_storage_account" "pass_explicitly_disabled" {
   }
 }
 
-# Omission uses the provider default of false and must remain compliant.
-resource "azurerm_storage_account" "pass_omitted_uses_default" {
+# Omission uses the provider default of true (azurerm v4) — public access enabled, must fail.
+resource "azurerm_storage_account" "fail_omitted_defaults_to_public" {
+  expect_failure = true
   attrs = {
     name                     = "omitteddefaultacct"
     resource_group_name      = "validation-resource-group"
@@ -26,8 +27,9 @@ resource "azurerm_storage_account" "pass_omitted_uses_default" {
   }
 }
 
-# Explicit null follows the same provider-default behavior as omission.
-resource "azurerm_storage_account" "pass_null_uses_default" {
+# Explicit null follows the same provider-default normalization — treated as true, must fail.
+resource "azurerm_storage_account" "fail_null_defaults_to_public" {
+  expect_failure = true
   attrs = {
     name                            = "nulldefaultacct"
     resource_group_name             = "validation-resource-group"

@@ -12,7 +12,7 @@ resource "azurerm_storage_account" "pass_inline_azure_services" {
     location                      = "eastus"
     account_tier                  = "Standard"
     account_replication_type      = "LRS"
-    public_network_access         = "Enabled"
+    public_network_access_enabled = true
     network_rules = {
       default_action = "Deny"
       bypass         = ["AzureServices"]
@@ -29,7 +29,7 @@ resource "azurerm_storage_account" "fail_inline_bypass_omitted" {
     location                      = "eastus"
     account_tier                  = "Standard"
     account_replication_type      = "LRS"
-    public_network_access         = "Enabled"
+    public_network_access_enabled = true
     network_rules = {
       default_action = "Deny"
     }
@@ -45,7 +45,7 @@ resource "azurerm_storage_account" "fail_inline_bypass_empty" {
     location                      = "eastus"
     account_tier                  = "Standard"
     account_replication_type      = "LRS"
-    public_network_access         = "Enabled"
+    public_network_access_enabled = true
     network_rules = {
       default_action = "Deny"
       bypass         = []
@@ -62,7 +62,7 @@ resource "azurerm_storage_account" "fail_inline_bypass_null" {
     location                      = "eastus"
     account_tier                  = "Standard"
     account_replication_type      = "LRS"
-    public_network_access         = "Enabled"
+    public_network_access_enabled = true
     network_rules = {
       default_action = "Deny"
       bypass         = null
@@ -78,7 +78,7 @@ resource "azurerm_storage_account" "pass_standalone_azure_services" {
     location                      = "eastus"
     account_tier                  = "Standard"
     account_replication_type      = "LRS"
-    public_network_access         = "Enabled"
+    public_network_access_enabled = true
   }
 }
 
@@ -100,7 +100,7 @@ resource "azurerm_storage_account" "fail_standalone_bypass_omitted" {
     location                      = "eastus"
     account_tier                  = "Standard"
     account_replication_type      = "LRS"
-    public_network_access         = "Enabled"
+    public_network_access_enabled = true
   }
 }
 
@@ -121,7 +121,7 @@ resource "azurerm_storage_account" "fail_standalone_without_azure_services" {
     location                      = "eastus"
     account_tier                  = "Standard"
     account_replication_type      = "LRS"
-    public_network_access         = "Enabled"
+    public_network_access_enabled = true
   }
 }
 
@@ -143,7 +143,7 @@ resource "azurerm_storage_account" "fail_inline_and_standalone_combined" {
     location                      = "eastus"
     account_tier                  = "Standard"
     account_replication_type      = "LRS"
-    public_network_access         = "Enabled"
+    public_network_access_enabled = true
     network_rules = {
       default_action = "Deny"
       bypass         = ["AzureServices"]
@@ -168,7 +168,7 @@ resource "azurerm_storage_account" "pass_public_access_disabled" {
     location                      = "eastus"
     account_tier                  = "Standard"
     account_replication_type      = "LRS"
-    public_network_access         = "Disabled"
+    public_network_access_enabled = false
     network_rules = {
       default_action = "Deny"
     }
@@ -183,7 +183,7 @@ resource "azurerm_storage_account" "pass_default_action_allow" {
     location                      = "eastus"
     account_tier                  = "Standard"
     account_replication_type      = "LRS"
-    public_network_access         = "Enabled"
+    public_network_access_enabled = true
     network_rules = {
       default_action = "Allow"
     }
@@ -198,6 +198,6 @@ resource "azurerm_storage_account" "pass_no_network_rules" {
     location                      = "eastus"
     account_tier                  = "Standard"
     account_replication_type      = "LRS"
-    public_network_access         = "Enabled"
+    public_network_access_enabled = true
   }
 }

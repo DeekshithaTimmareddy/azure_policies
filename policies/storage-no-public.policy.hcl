@@ -11,15 +11,20 @@ policy {
   }
 }
 
+input "storage-no-public-enforcement-level" {
+  type    = string
+  default = "advisory"
+}
+
 resource_policy "azurerm_storage_account" "disable_public_network_access" {
   locals {
-    public_network_access_raw = core::try(attrs.public_network_access, null)
-    public_network_access     = local.public_network_access_raw == null ? "Enabled" : local.public_network_access_raw
+    public_network_access_enabled_raw = core::try(attrs.public_network_access_enabled, null)
+    public_network_access_enabled     = local.public_network_access_enabled_raw == null ? true : local.public_network_access_enabled_raw
   }
 
-  enforcement_level = "advisory"
+  enforcement_level = input.storage-no-public-enforcement-level
   enforce {
-    condition     = local.public_network_access == "Disabled"
-    error_message = "Storage accounts must set public_network_access to 'Disabled'. Disable public network access and use private endpoints for trusted network access."
+    condition     = local.public_network_access_enabled == false
+    error_message = "Storage accounts must set public_network_access_enabled to false. Disable public network access and use private endpoints for trusted network access."
   }
 }
