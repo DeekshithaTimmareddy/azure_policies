@@ -46,7 +46,7 @@ resource_policy "azurerm_network_security_rule" "restrict_internet_udp_ports_sta
     protocol                = core::try(attrs.protocol, "")
     is_inbound_udp_allow    = local.direction == "Inbound" && local.access == "Allow" && (local.protocol == "Udp" || local.protocol == "*")
     source_prefix           = core::try(attrs.source_address_prefix, "")
-    source_prefixes         = core::try(attrs.source_address_prefixes, [])
+    source_prefixes         = core::try(attrs.source_address_prefixes, null) != null ? core::try(attrs.source_address_prefixes, []) : []
     is_internet_source      = core::contains(["0.0.0.0/0", "Internet", "*"], local.source_prefix) || core::length([for prefix in local.source_prefixes : prefix if core::contains(["0.0.0.0/0", "Internet", "*"], prefix)]) > 0
     dest_port_range  = core::try(attrs.destination_port_range, "")
     dest_port_ranges = core::try(attrs.destination_port_ranges, [])
