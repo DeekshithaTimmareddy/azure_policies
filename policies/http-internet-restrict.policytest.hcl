@@ -223,3 +223,139 @@ resource "azurerm_network_security_group" "fail_wildcard_source_prefix" {
     }]
   }
 }
+
+resource "azurerm_network_security_group" "fail_ipv6_unrestricted_source" {
+  expect_failure = true
+  attrs = {
+    name                = "ipv6-source-https"
+    location            = "eastus"
+    resource_group_name = "example-resource-group"
+    security_rule = [{
+      name                       = "allow-ipv6-https"
+      priority                   = 190
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      destination_port_range     = "443"
+      source_address_prefix      = "::/0"
+      destination_address_prefix = "*"
+    }]
+  }
+}
+
+resource "azurerm_network_security_group" "fail_range_exact_boundary_443" {
+  expect_failure = true
+  attrs = {
+    name                = "range-exact-443"
+    location            = "eastus"
+    resource_group_name = "example-resource-group"
+    security_rule = [{
+      name                       = "allow-range-exact-443"
+      priority                   = 200
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      destination_port_ranges    = ["443-443"]
+      source_address_prefix      = "0.0.0.0/0"
+      destination_address_prefix = "*"
+    }]
+  }
+}
+
+resource "azurerm_network_security_group" "fail_range_exact_boundary_80" {
+  expect_failure = true
+  attrs = {
+    name                = "range-exact-80"
+    location            = "eastus"
+    resource_group_name = "example-resource-group"
+    security_rule = [{
+      name                       = "allow-range-exact-80"
+      priority                   = 210
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      destination_port_ranges    = ["80-80"]
+      source_address_prefix      = "0.0.0.0/0"
+      destination_address_prefix = "*"
+    }]
+  }
+}
+
+resource "azurerm_network_security_group" "fail_range_overlaps_443" {
+  expect_failure = true
+  attrs = {
+    name                = "range-overlaps-443"
+    location            = "eastus"
+    resource_group_name = "example-resource-group"
+    security_rule = [{
+      name                       = "allow-range-overlaps-443"
+      priority                   = 220
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      destination_port_ranges    = ["440-450"]
+      source_address_prefix      = "0.0.0.0/0"
+      destination_address_prefix = "*"
+    }]
+  }
+}
+
+resource "azurerm_network_security_group" "pass_range_does_not_overlap" {
+  attrs = {
+    name                = "range-does-not-overlap"
+    location            = "eastus"
+    resource_group_name = "example-resource-group"
+    security_rule = [{
+      name                       = "allow-range-does-not-overlap"
+      priority                   = 230
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      destination_port_ranges    = ["8000-8080"]
+      source_address_prefix      = "0.0.0.0/0"
+      destination_address_prefix = "*"
+    }]
+  }
+}
+
+resource "azurerm_network_security_rule" "fail_standalone_https_internet" {
+  expect_failure = true
+  attrs = {
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Tcp"
+    destination_port_range = "443"
+    source_address_prefix  = "0.0.0.0/0"
+  }
+}
+
+resource "azurerm_network_security_rule" "fail_standalone_https_ipv6" {
+  expect_failure = true
+  attrs = {
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Tcp"
+    destination_port_range = "443"
+    source_address_prefix  = "::/0"
+  }
+}
+
+resource "azurerm_network_security_rule" "pass_standalone_outbound_https" {
+  attrs = {
+    direction              = "Outbound"
+    access                 = "Allow"
+    protocol               = "Tcp"
+    destination_port_range = "443"
+    source_address_prefix  = "Internet"
+  }
+}
+
+resource "azurerm_network_security_rule" "pass_standalone_narrow_source" {
+  attrs = {
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Tcp"
+    destination_port_range = "443"
+    source_address_prefix  = "10.0.0.0/24"
+  }
+}

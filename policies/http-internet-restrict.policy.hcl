@@ -30,13 +30,36 @@ resource_policy "azurerm_network_security_group" "restrict_internet_http_https_a
       source_address_prefixes = core::try(rule.source_address_prefixes, null) != null ? rule.source_address_prefixes : []
     }]
     inbound_allow_tcp_rules   = [for rule in local.normalized_rules : rule if rule.direction == "Inbound" && rule.access == "Allow" && core::contains(["Tcp", "*"], rule.protocol)]
-    violations_single_port    = [for rule in local.inbound_allow_tcp_rules : rule if (core::contains(["80", "443", "*"], rule.destination_port_range) || (core::length(core::split("-", rule.destination_port_range)) == 2 && core::try(core::parseint(core::split("-", rule.destination_port_range)[0], 10), -1) <= 80 && core::try(core::parseint(core::split("-", rule.destination_port_range)[1], 10), -1) >= 80) || (core::length(core::split("-", rule.destination_port_range)) == 2 && core::try(core::parseint(core::split("-", rule.destination_port_range)[0], 10), -1) <= 443 && core::try(core::parseint(core::split("-", rule.destination_port_range)[1], 10), -1) >= 443)) && (core::contains(["0.0.0.0/0", "Internet", "*"], rule.source_address_prefix) || core::length([for source in rule.source_address_prefixes : source if core::contains(["0.0.0.0/0", "Internet", "*"], source)]) > 0)]
-    violations_multiple_ports = [for rule in local.inbound_allow_tcp_rules : rule if core::length([for port in rule.destination_port_ranges : port if core::contains(["80", "443", "*"], port) || (core::length(core::split("-", port)) == 2 && core::try(core::parseint(core::split("-", port)[0], 10), -1) <= 80 && core::try(core::parseint(core::split("-", port)[1], 10), -1) >= 80) || (core::length(core::split("-", port)) == 2 && core::try(core::parseint(core::split("-", port)[0], 10), -1) <= 443 && core::try(core::parseint(core::split("-", port)[1], 10), -1) >= 443)]) > 0 && (core::contains(["0.0.0.0/0", "Internet", "*"], rule.source_address_prefix) || core::length([for source in rule.source_address_prefixes : source if core::contains(["0.0.0.0/0", "Internet", "*"], source)]) > 0)]
+    violations_single_port    = [for rule in local.inbound_allow_tcp_rules : rule if (core::contains(["80", "443", "*"], rule.destination_port_range) || (core::length(core::split("-", rule.destination_port_range)) == 2 && core::try(core::parseint(core::split("-", rule.destination_port_range)[0], 10), -1) <= 80 && core::try(core::parseint(core::split("-", rule.destination_port_range)[1], 10), -1) >= 80) || (core::length(core::split("-", rule.destination_port_range)) == 2 && core::try(core::parseint(core::split("-", rule.destination_port_range)[0], 10), -1) <= 443 && core::try(core::parseint(core::split("-", rule.destination_port_range)[1], 10), -1) >= 443)) && (core::contains(["0.0.0.0/0", "::/0", "Internet", "*"], rule.source_address_prefix) || core::length([for source in rule.source_address_prefixes : source if core::contains(["0.0.0.0/0", "::/0", "Internet", "*"], source)]) > 0)]
+    violations_multiple_ports = [for rule in local.inbound_allow_tcp_rules : rule if core::length([for port in rule.destination_port_ranges : port if core::contains(["80", "443", "*"], port) || (core::length(core::split("-", port)) == 2 && core::try(core::parseint(core::split("-", port)[0], 10), -1) <= 80 && core::try(core::parseint(core::split("-", port)[1], 10), -1) >= 80) || (core::length(core::split("-", port)) == 2 && core::try(core::parseint(core::split("-", port)[0], 10), -1) <= 443 && core::try(core::parseint(core::split("-", port)[1], 10), -1) >= 443)]) > 0 && (core::contains(["0.0.0.0/0", "::/0", "Internet", "*"], rule.source_address_prefix) || core::length([for source in rule.source_address_prefixes : source if core::contains(["0.0.0.0/0", "::/0", "Internet", "*"], source)]) > 0)]
   }
 
   enforcement_level = input.http-internet-restrict-enforcement-level
   enforce {
     condition     = core::length(local.violations_single_port) == 0 && core::length(local.violations_multiple_ports) == 0
     error_message = "Network security groups must not allow inbound HTTP or HTTPS traffic from Internet-level sources. Remove the rule or narrow its source address prefixes."
+  }
+}
+
+resource_policy "azurerm_network_security_rule" "restrict_internet_http_https_access_standalone" {
+  locals {
+    direction        = core::try(attrs.direction, null) != null ? attrs.direction : ""
+    access           = core::try(attrs.access, null) != null ? attrs.access : ""
+    protocol         = core::try(attrs.protocol, null) != null ? attrs.protocol : ""
+    dest_port_range  = core::try(attrs.destination_port_range, null) != null ? attrs.destination_port_range : ""
+    dest_port_ranges = core::try(attrs.destination_port_ranges, null) != null ? attrs.destination_port_ranges : []
+    source_prefix    = core::try(attrs.source_address_prefix, null) != null ? attrs.source_address_prefix : ""
+    source_prefixes  = core::try(attrs.source_address_prefixes, null) != null ? attrs.source_address_prefixes : []
+
+    is_inbound_allow_tcp = local.direction == "Inbound" && local.access == "Allow" && core::contains(["Tcp", "*"], local.protocol)
+    is_internet_source   = core::contains(["0.0.0.0/0", "::/0", "Internet", "*"], local.source_prefix) || core::length([for source in local.source_prefixes : source if core::contains(["0.0.0.0/0", "::/0", "Internet", "*"], source)]) > 0
+    is_http_https_port_single = core::contains(["80", "443", "*"], local.dest_port_range) || (core::length(core::split("-", local.dest_port_range)) == 2 && core::try(core::parseint(core::split("-", local.dest_port_range)[0], 10), -1) <= 80 && core::try(core::parseint(core::split("-", local.dest_port_range)[1], 10), -1) >= 80) || (core::length(core::split("-", local.dest_port_range)) == 2 && core::try(core::parseint(core::split("-", local.dest_port_range)[0], 10), -1) <= 443 && core::try(core::parseint(core::split("-", local.dest_port_range)[1], 10), -1) >= 443)
+    is_http_https_port_plural = core::length([for port in local.dest_port_ranges : port if core::contains(["80", "443", "*"], port) || (core::length(core::split("-", port)) == 2 && core::try(core::parseint(core::split("-", port)[0], 10), -1) <= 80 && core::try(core::parseint(core::split("-", port)[1], 10), -1) >= 80) || (core::length(core::split("-", port)) == 2 && core::try(core::parseint(core::split("-", port)[0], 10), -1) <= 443 && core::try(core::parseint(core::split("-", port)[1], 10), -1) >= 443)]) > 0
+  }
+
+  enforcement_level = input.http-internet-restrict-enforcement-level
+  enforce {
+    condition     = !(local.is_inbound_allow_tcp && local.is_internet_source && (local.is_http_https_port_single || local.is_http_https_port_plural))
+    error_message = "Standalone network security rules must not allow inbound HTTP or HTTPS traffic from Internet-level sources."
   }
 }

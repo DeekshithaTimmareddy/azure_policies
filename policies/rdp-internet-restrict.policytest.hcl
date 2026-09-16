@@ -238,3 +238,114 @@ resource "azurerm_network_security_group" "fail_wildcard_source_prefix" {
     }]
   }
 }
+
+resource "azurerm_network_security_group" "fail_null_source_prefixes" {
+  expect_failure = true
+  attrs = {
+    name                = "fail-null-source-prefixes"
+    location            = "East US"
+    resource_group_name = "validation-resource-group"
+    security_rule = [{
+      name                       = "public-rdp-null-prefixes"
+      priority                   = 100
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      destination_port_range     = "3389"
+      source_address_prefix      = "0.0.0.0/0"
+      source_address_prefixes    = null
+      destination_address_prefix = "*"
+    }]
+  }
+}
+
+resource "azurerm_network_security_group" "fail_null_destination_port_ranges" {
+  expect_failure = true
+  attrs = {
+    name                = "fail-null-dest-ranges"
+    location            = "East US"
+    resource_group_name = "validation-resource-group"
+    security_rule = [{
+      name                       = "public-rdp-null-ranges"
+      priority                   = 100
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      destination_port_range     = "3389"
+      destination_port_ranges    = null
+      source_address_prefix      = "Internet"
+      destination_address_prefix = "*"
+    }]
+  }
+}
+
+resource "azurerm_network_security_group" "fail_ipv6_unrestricted_source" {
+  expect_failure = true
+  attrs = {
+    name                = "fail-ipv6-source"
+    location            = "East US"
+    resource_group_name = "validation-resource-group"
+    security_rule = [{
+      name                       = "public-rdp-ipv6"
+      priority                   = 100
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      destination_port_range     = "3389"
+      source_address_prefix      = "::/0"
+      destination_address_prefix = "*"
+    }]
+  }
+}
+
+resource "azurerm_network_security_rule" "fail_standalone_rdp_internet" {
+  expect_failure = true
+  attrs = {
+    direction               = "Inbound"
+    access                  = "Allow"
+    protocol                = "Tcp"
+    destination_port_range  = "3389"
+    source_address_prefix   = "0.0.0.0/0"
+  }
+}
+
+resource "azurerm_network_security_rule" "fail_standalone_rdp_ipv6" {
+  expect_failure = true
+  attrs = {
+    direction               = "Inbound"
+    access                  = "Allow"
+    protocol                = "Tcp"
+    destination_port_range  = "3389"
+    source_address_prefix   = "::/0"
+  }
+}
+
+resource "azurerm_network_security_rule" "pass_standalone_outbound_rdp" {
+  attrs = {
+    direction               = "Outbound"
+    access                  = "Allow"
+    protocol                = "Tcp"
+    destination_port_range  = "3389"
+    source_address_prefix   = "Internet"
+  }
+}
+
+resource "azurerm_network_security_rule" "pass_standalone_private_source" {
+  attrs = {
+    direction               = "Inbound"
+    access                  = "Allow"
+    protocol                = "Tcp"
+    destination_port_range  = "3389"
+    source_address_prefix   = "10.0.0.0/8"
+  }
+}
+
+resource "azurerm_network_security_rule" "pass_standalone_deny" {
+  attrs = {
+    direction               = "Inbound"
+    access                  = "Deny"
+    protocol                = "Tcp"
+    destination_port_range  = "3389"
+    source_address_prefix   = "Internet"
+  }
+}

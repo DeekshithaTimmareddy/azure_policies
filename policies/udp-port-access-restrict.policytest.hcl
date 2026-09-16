@@ -298,3 +298,127 @@ resource "azurerm_network_security_group" "pass_service_tag_port_range" {
     }]
   }
 }
+
+resource "azurerm_network_security_group" "fail_null_source_prefixes" {
+  expect_failure = true
+  attrs = {
+    name                = "fail-null-source-prefixes"
+    location            = "East US"
+    resource_group_name = "validation-resource-group"
+    security_rule = [{
+      name                       = "udp-dns-null-prefixes"
+      priority                   = 260
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Udp"
+      destination_port_range     = "53"
+      source_address_prefix      = "0.0.0.0/0"
+      source_address_prefixes    = null
+      destination_address_prefix = "*"
+    }]
+  }
+}
+
+resource "azurerm_network_security_group" "fail_ipv6_unrestricted_source" {
+  expect_failure = true
+  attrs = {
+    name                = "fail-ipv6-source"
+    location            = "East US"
+    resource_group_name = "validation-resource-group"
+    security_rule = [{
+      name                       = "udp-dns-ipv6"
+      priority                   = 270
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Udp"
+      destination_port_range     = "53"
+      source_address_prefix      = "::/0"
+      destination_address_prefix = "*"
+    }]
+  }
+}
+
+resource "azurerm_network_security_rule" "fail_standalone_dns_udp_internet" {
+  expect_failure = true
+  attrs = {
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Udp"
+    destination_port_range = "53"
+    source_address_prefix  = "Internet"
+  }
+}
+
+resource "azurerm_network_security_rule" "fail_standalone_ipv6_source" {
+  expect_failure = true
+  attrs = {
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Udp"
+    destination_port_range = "123"
+    source_address_prefix  = "::/0"
+  }
+}
+
+resource "azurerm_network_security_rule" "fail_standalone_plural_range" {
+  expect_failure = true
+  attrs = {
+    direction                = "Inbound"
+    access                   = "Allow"
+    protocol                 = "*"
+    destination_port_ranges  = ["22", "1900"]
+    source_address_prefixes  = ["10.0.0.0/8", "0.0.0.0/0"]
+  }
+}
+
+resource "azurerm_network_security_rule" "fail_standalone_null_dest_ranges" {
+  expect_failure = true
+  attrs = {
+    direction                = "Inbound"
+    access                   = "Allow"
+    protocol                 = "Udp"
+    destination_port_range   = "389"
+    destination_port_ranges  = null
+    source_address_prefix    = "Internet"
+  }
+}
+
+resource "azurerm_network_security_rule" "pass_standalone_outbound_udp" {
+  attrs = {
+    direction              = "Outbound"
+    access                 = "Allow"
+    protocol               = "Udp"
+    destination_port_range = "53"
+    source_address_prefix  = "Internet"
+  }
+}
+
+resource "azurerm_network_security_rule" "pass_standalone_deny" {
+  attrs = {
+    direction              = "Inbound"
+    access                 = "Deny"
+    protocol               = "Udp"
+    destination_port_range = "53"
+    source_address_prefix  = "Internet"
+  }
+}
+
+resource "azurerm_network_security_rule" "pass_standalone_private_source" {
+  attrs = {
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Udp"
+    destination_port_range = "53"
+    source_address_prefix  = "10.0.0.0/8"
+  }
+}
+
+resource "azurerm_network_security_rule" "pass_standalone_unrestricted_port" {
+  attrs = {
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Udp"
+    destination_port_range = "8080"
+    source_address_prefix  = "Internet"
+  }
+}
