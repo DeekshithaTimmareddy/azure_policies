@@ -52,8 +52,8 @@ resource "azurerm_storage_account" "pass_file_storage_kind" {
   }
 }
 
-# BlockBlobStorage accounts do not support blob public access; enforcement is skipped.
-resource "azurerm_storage_account" "pass_block_blob_storage_kind" {
+resource "azurerm_storage_account" "fail_block_blob_storage_kind_no_longer_exempt" {
+  expect_failure = true
   attrs = {
     name                     = "blockblobkindacct"
     resource_group_name      = "validation-resource-group"
@@ -61,6 +61,18 @@ resource "azurerm_storage_account" "pass_block_blob_storage_kind" {
     account_tier             = "Premium"
     account_replication_type = "LRS"
     account_kind             = "BlockBlobStorage"
+  }
+}
+
+resource "azurerm_storage_account" "pass_block_blob_storage_kind_compliant" {
+  attrs = {
+    name                             = "blockblobcompliantacct"
+    resource_group_name              = "validation-resource-group"
+    location                         = "East US"
+    account_tier                     = "Premium"
+    account_replication_type         = "LRS"
+    account_kind                     = "BlockBlobStorage"
+    allow_nested_items_to_be_public  = false
   }
 }
 

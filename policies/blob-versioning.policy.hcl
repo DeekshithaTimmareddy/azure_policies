@@ -17,7 +17,11 @@ input "blob-versioning-enforcement-level" {
 }
 
 resource_policy "azurerm_storage_account" "blob_versioning_enabled" {
-  filter = core::try(attrs.account_kind, "StorageV2") != "Storage" && core::try(attrs.account_kind, "StorageV2") != "FileStorage"
+  filter = (
+    core::try(attrs.account_kind, "StorageV2") != "Storage"
+    && core::try(attrs.account_kind, "StorageV2") != "FileStorage"
+    && core::try(attrs.is_hns_enabled, false) != true
+  )
 
   locals {
     versioning_enabled_raw = core::try(attrs.blob_properties[0].versioning_enabled, attrs.blob_properties.versioning_enabled, null)

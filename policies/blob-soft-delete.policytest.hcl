@@ -141,8 +141,8 @@ resource "azurerm_storage_account" "fail_above_retention_range" {
   }
 }
 
-# Storage (V1) accounts cannot have blob_properties configured; enforcement is skipped.
-resource "azurerm_storage_account" "pass_storage_v1_unsupported_kind" {
+resource "azurerm_storage_account" "fail_storage_v1_no_longer_exempt" {
+  expect_failure = true
   attrs = {
     name                     = "storagevoneaccount"
     resource_group_name      = "validation-resource-group"
@@ -150,6 +150,22 @@ resource "azurerm_storage_account" "pass_storage_v1_unsupported_kind" {
     account_tier             = "Standard"
     account_replication_type = "LRS"
     account_kind             = "Storage"
+  }
+}
+
+resource "azurerm_storage_account" "pass_storage_v1_with_soft_delete" {
+  attrs = {
+    name                     = "storagevonecompliant"
+    resource_group_name      = "validation-resource-group"
+    location                 = "eastus"
+    account_tier             = "Standard"
+    account_replication_type = "LRS"
+    account_kind             = "Storage"
+    blob_properties = {
+      delete_retention_policy = {
+        days = 7
+      }
+    }
   }
 }
 
@@ -178,6 +194,23 @@ resource "azurerm_storage_account" "fail_days_below_cis_minimum" {
     blob_properties = {
       delete_retention_policy = {
         days = 1
+      }
+    }
+  }
+}
+
+resource "azurerm_storage_account" "fail_null_retention_days" {
+  expect_failure = true
+  attrs = {
+    name                     = "nulldaysacct"
+    resource_group_name      = "validation-resource-group"
+    location                 = "eastus"
+    account_tier             = "Standard"
+    account_replication_type = "LRS"
+    account_kind             = "StorageV2"
+    blob_properties = {
+      delete_retention_policy = {
+        days = null
       }
     }
   }

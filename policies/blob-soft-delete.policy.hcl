@@ -19,14 +19,14 @@ input "blob-soft-delete-enforcement-level" {
 resource_policy "azurerm_storage_account" "azure_blob_soft_delete" {
   locals {
     account_kind     = core::try(attrs.account_kind, "StorageV2")
-    unsupported_kind = core::contains(["Storage", "FileStorage"], local.account_kind)
+    unsupported_kind = core::contains(["FileStorage"], local.account_kind)
 
     blob_properties_raw         = core::try(attrs.blob_properties, null)
     has_blob_properties         = local.blob_properties_raw != null
     delete_retention_policy_raw = core::try(attrs.blob_properties[0].delete_retention_policy, core::try(attrs.blob_properties.delete_retention_policy, null))
     has_delete_retention_policy = local.delete_retention_policy_raw != null
     retention_days              = core::try(local.delete_retention_policy_raw[0].days, core::try(local.delete_retention_policy_raw.days, 7))
-    has_valid_blob_retention_period = local.retention_days >= 7 && local.retention_days <= 365
+    has_valid_blob_retention_period = core::try(local.retention_days >= 7 && local.retention_days <= 365, false)
   }
 
   enforcement_level = input.blob-soft-delete-enforcement-level

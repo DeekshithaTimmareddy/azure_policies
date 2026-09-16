@@ -40,6 +40,24 @@ resource "azurerm_storage_account" "pass_file_storage_outside_scope" {
   }
 }
 
+# HNS (hierarchical namespace / ADLS Gen2) accounts are not currently
+# supported for blob versioning by Azure -- even though versioning_enabled
+# is false here, this must NOT be flagged since the setting is out of scope.
+resource "azurerm_storage_account" "pass_hns_enabled_out_of_scope" {
+  attrs = {
+    name                     = "passhnsacct"
+    resource_group_name      = "validation-resource-group"
+    location                 = "West Europe"
+    account_tier             = "Standard"
+    account_replication_type = "LRS"
+    account_kind             = "StorageV2"
+    is_hns_enabled           = true
+    blob_properties = {
+      versioning_enabled = false
+    }
+  }
+}
+
 resource "azurerm_storage_account" "pass_blob_properties_list_form" {
   attrs = {
     name                     = "passlistformacct"

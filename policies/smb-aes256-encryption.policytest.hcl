@@ -157,3 +157,42 @@ resource "azurerm_storage_account" "pass_unsupported_kind_block_blob" {
     account_kind             = "BlockBlobStorage"
   }
 }
+
+resource "azurerm_storage_account" "fail_gpv1_standard_no_longer_exempt" {
+  expect_failure = true
+  attrs = {
+    name                     = "failgpv1standard"
+    resource_group_name      = "validation-resource-group"
+    location                 = "eastus"
+    account_tier             = "Standard"
+    account_replication_type = "LRS"
+    account_kind             = "Storage"
+  }
+}
+
+resource "azurerm_storage_account" "pass_gpv1_standard_compliant" {
+  attrs = {
+    name                     = "passgpv1standard"
+    resource_group_name      = "validation-resource-group"
+    location                 = "eastus"
+    account_tier             = "Standard"
+    account_replication_type = "LRS"
+    account_kind             = "Storage"
+    share_properties = {
+      smb = {
+        channel_encryption_type = ["AES-256-GCM"]
+      }
+    }
+  }
+}
+
+resource "azurerm_storage_account" "pass_storagev2_premium_out_of_scope" {
+  attrs = {
+    name                     = "passstoragev2premium"
+    resource_group_name      = "validation-resource-group"
+    location                 = "eastus"
+    account_tier             = "Premium"
+    account_replication_type = "LRS"
+    account_kind             = "StorageV2"
+  }
+}

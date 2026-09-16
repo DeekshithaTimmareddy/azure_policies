@@ -20,19 +20,36 @@ resource "azurerm_storage_account" "pass_inline_azure_services" {
   }
 }
 
-resource "azurerm_storage_account" "fail_inline_bypass_omitted" {
-  expect_failure = true
+resource "azurerm_storage_account" "pass_inline_list_shape_azure_services" {
   attrs = {
-    id                            = "/subscriptions/test/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/failinlineomitted"
-    name                          = "failinlineomitted"
+    id                            = "/subscriptions/test/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/passinlinelist"
+    name                          = "passinlinelist"
     resource_group_name           = "rg"
     location                      = "eastus"
     account_tier                  = "Standard"
     account_replication_type      = "LRS"
     public_network_access_enabled = true
-    network_rules = {
+    network_rules = [{
       default_action = "Deny"
-    }
+      bypass         = ["AzureServices"]
+    }]
+  }
+}
+
+resource "azurerm_storage_account" "fail_inline_list_shape_without_azure_services" {
+  expect_failure = true
+  attrs = {
+    id                            = "/subscriptions/test/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/faillistshape"
+    name                          = "faillistshape"
+    resource_group_name           = "rg"
+    location                      = "eastus"
+    account_tier                  = "Standard"
+    account_replication_type      = "LRS"
+    public_network_access_enabled = true
+    network_rules = [{
+      default_action = "Deny"
+      bypass         = ["Logging", "Metrics"]
+    }]
   }
 }
 
@@ -48,7 +65,7 @@ resource "azurerm_storage_account" "fail_inline_bypass_empty" {
     public_network_access_enabled = true
     network_rules = {
       default_action = "Deny"
-      bypass         = []
+      bypass         = [] 
     }
   }
 }
@@ -91,27 +108,6 @@ resource "azurerm_storage_account_network_rules" "pass_standalone_azure_services
   }
 }
 
-resource "azurerm_storage_account" "fail_standalone_bypass_omitted" {
-  expect_failure = true
-  attrs = {
-    id                            = "/subscriptions/test/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/failstandaloneomitted"
-    name                          = "failstandaloneomitted"
-    resource_group_name           = "rg"
-    location                      = "eastus"
-    account_tier                  = "Standard"
-    account_replication_type      = "LRS"
-    public_network_access_enabled = true
-  }
-}
-
-resource "azurerm_storage_account_network_rules" "fail_standalone_bypass_omitted" {
-  skip = true
-  attrs = {
-    storage_account_id = "/subscriptions/test/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/failstandaloneomitted"
-    default_action     = "Deny"
-  }
-}
-
 resource "azurerm_storage_account" "fail_standalone_without_azure_services" {
   expect_failure = true
   attrs = {
@@ -134,11 +130,41 @@ resource "azurerm_storage_account_network_rules" "fail_standalone_without_azure_
   }
 }
 
-resource "azurerm_storage_account" "fail_inline_and_standalone_combined" {
+resource "azurerm_storage_account" "fail_standalone_multiple_matches" {
   expect_failure = true
   attrs = {
-    id                            = "/subscriptions/test/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/failcombined"
-    name                          = "failcombined"
+    id                            = "/subscriptions/test/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/failmultimatch"
+    name                          = "failmultimatch"
+    resource_group_name           = "rg"
+    location                      = "eastus"
+    account_tier                  = "Standard"
+    account_replication_type      = "LRS"
+    public_network_access_enabled = true
+  }
+}
+
+resource "azurerm_storage_account_network_rules" "fail_standalone_multiple_matches_compliant" {
+  skip = true
+  attrs = {
+    storage_account_id = "/subscriptions/test/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/failmultimatch"
+    default_action     = "Deny"
+    bypass             = ["AzureServices"]
+  }
+}
+
+resource "azurerm_storage_account_network_rules" "fail_standalone_multiple_matches_noncompliant" {
+  skip = true
+  attrs = {
+    storage_account_id = "/subscriptions/test/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/failmultimatch"
+    default_action     = "Deny"
+    bypass             = ["Logging"]
+  }
+}
+
+resource "azurerm_storage_account" "pass_inline_and_standalone_both_present" {
+  attrs = {
+    id                            = "/subscriptions/test/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/passcombined"
+    name                          = "passcombined"
     resource_group_name           = "rg"
     location                      = "eastus"
     account_tier                  = "Standard"
@@ -151,10 +177,10 @@ resource "azurerm_storage_account" "fail_inline_and_standalone_combined" {
   }
 }
 
-resource "azurerm_storage_account_network_rules" "fail_inline_and_standalone_combined" {
+resource "azurerm_storage_account_network_rules" "pass_inline_and_standalone_both_present" {
   skip = true
   attrs = {
-    storage_account_id = "/subscriptions/test/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/failcombined"
+    storage_account_id = "/subscriptions/test/resourceGroups/rg/providers/Microsoft.Storage/storageAccounts/passcombined"
     default_action     = "Deny"
     bypass             = ["AzureServices"]
   }
