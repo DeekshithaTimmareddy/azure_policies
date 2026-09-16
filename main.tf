@@ -16,7 +16,7 @@
 #   storage-secure-transfer       azurerm_storage_account                commented
 #   storage-tls12                 azurerm_storage_account                commented
 #   trusted-services              azurerm_storage_account + network_rules commented
-#   subscription-owners           azurerm_role_assignment                ACTIVE ✓ (re-verifying fix)
+#   subscription-owners           azurerm_role_assignment                verified ✅ (destroyed after test)
 #   http-internet-restrict        azurerm_network_security_group         commented
 #   rdp-internet-restrict         azurerm_network_security_group         commented
 #   udp-port-access-restrict      azurerm_network_security_group + rule  commented
@@ -265,6 +265,8 @@ provider "azurerm" {
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ACTIVE — subscription-owners (IAM policy)
+# ─────────────────────────────────────────────────────────────────────────────
+# COMMENTED OUT -- subscription-owners (IAM policy), verified successfully.
 #
 # Policy  : subscription must not have more than 3 Owner role assignments
 #           visible in this Terraform plan (minimum of 2 is a documented,
@@ -272,21 +274,30 @@ provider "azurerm" {
 # Subscription : timmareddy-azure-test (b4c6e83c-e900-42e9-ae40-f5d42244f50f)
 # Tenant       : 237fbc04-c52a-458b-af97-eaf7157c0cd4
 #
-# Both assignments ALREADY EXIST in Azure and are already imported into this
-# workspace's state from prior testing.
+# owner_one/owner_two were real, imported Owner role assignments used to
+# verify the fixed policy end-to-end against a real HCP Terraform run (see
+# run-L2LXdezmBjhpKXUr / run-ZJLaUZjKcd5wVyCQ: tf-policy-evaluations passed
+# cleanly). Both were destroyed after testing -- uncomment and re-import (or
+# create fresh ones) to test IAM again.
 # ─────────────────────────────────────────────────────────────────────────────
 
-# owner_one — ServicePrincipal: 7bb30395-4c24-467b-b316-c3a61e09a2d3
-resource "azurerm_role_assignment" "owner_one" {
-  scope                            = "/subscriptions/b4c6e83c-e900-42e9-ae40-f5d42244f50f"
-  role_definition_name             = "Owner"
-  principal_id                     = "2dbc65dc-5ad7-4ddf-8797-09407b8c3af9"
-  skip_service_principal_aad_check = true
-}
+# # owner_one — ServicePrincipal: 7bb30395-4c24-467b-b316-c3a61e09a2d3
+# #
+# # NOTE: skip_service_principal_aad_check is ForceNew-only (create-time only)
+# # on azurerm_role_assignment. Since this resource is imported rather than
+# # created by this config, the flag isn't persisted in Azure and the provider
+# # cannot toggle it in place ("doesn't support update") -- so it must be left
+# # unset here to match the real imported state.
+# resource "azurerm_role_assignment" "owner_one" {
+#   scope                = "/subscriptions/b4c6e83c-e900-42e9-ae40-f5d42244f50f"
+#   role_definition_name = "Owner"
+#   principal_id         = "2dbc65dc-5ad7-4ddf-8797-09407b8c3af9"
+# }
+#
+# # owner_two — Group: admin-b4c6e83c-e900-42e9-ae40-f5d42244f50f
+# resource "azurerm_role_assignment" "owner_two" {
+#   scope                = "/subscriptions/b4c6e83c-e900-42e9-ae40-f5d42244f50f"
+#   role_definition_name = "Owner"
+#   principal_id         = "1bc1fa47-d8a0-4e70-93cf-e3b0a2e56ab2"
+# }
 
-# owner_two — Group: admin-b4c6e83c-e900-42e9-ae40-f5d42244f50f
-resource "azurerm_role_assignment" "owner_two" {
-  scope                = "/subscriptions/b4c6e83c-e900-42e9-ae40-f5d42244f50f"
-  role_definition_name = "Owner"
-  principal_id         = "1bc1fa47-d8a0-4e70-93cf-e3b0a2e56ab2"
-}
