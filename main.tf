@@ -20,17 +20,18 @@
 #   http-internet-restrict        azurerm_network_security_group         verified ✅ (fix confirmed via HCP run)
 #   rdp-internet-restrict         azurerm_network_security_group         verified ✅ (fix confirmed via HCP run)
 #   udp-port-access-restrict      azurerm_network_security_group + rule  verified ✅ (fix confirmed via HCP run)
-#   rbac-enabled                  azurerm_key_vault                      ACTIVE ✓ (Phase 2 CIS)
-#   purge-protection-enabled      azurerm_key_vault                      ACTIVE ✓ (Phase 2 CIS)
-#   public-network-access-disabled azurerm_key_vault                     ACTIVE ✓ (Phase 2 CIS)
-#   key-expiration-rbac           azurerm_key_vault_key                  ACTIVE ✓ (Phase 2 CIS)
-#   key-expiration-access-policy  azurerm_key_vault_key                  ACTIVE ✓ (Phase 2 CIS)
-#   secret-expiration-rbac        azurerm_key_vault_secret               ACTIVE ✓ (Phase 2 CIS)
-#   secret-expiration-access-policy azurerm_key_vault_secret              ACTIVE ✓ (Phase 2 CIS)
-#   automatic-key-rotation-enabled azurerm_key_vault_key                 ACTIVE ✓ (Phase 2 CIS)
-#   certificate-validity-12-months azurerm_key_vault_certificate         ACTIVE ✓ (Phase 2 CIS)
-#   private-endpoints-used         azurerm_private_endpoint              ACTIVE ✓ (Phase 2 CIS)
-#   keyvault-logging-enabled       azurerm_monitor_diagnostic_setting    ACTIVE ✓ (Phase 2 CIS)
+#   rbac-enabled                  azurerm_key_vault                      verified ✅ (fix confirmed via HCP run, destroyed)
+#   purge-protection-enabled      azurerm_key_vault                      verified ✅ (fix confirmed via HCP run, destroyed)
+#   public-network-access-disabled azurerm_key_vault                     verified ✅ (fix confirmed via HCP run, destroyed)
+#   key-expiration-rbac           azurerm_key_vault_key                  verified ✅ (fix confirmed via HCP run, destroyed)
+#   key-expiration-access-policy  azurerm_key_vault_key                  verified ✅ (fix confirmed via HCP run, destroyed)
+#   secret-expiration-rbac        azurerm_key_vault_secret               verified ✅ (fix confirmed via HCP run, destroyed)
+#   secret-expiration-access-policy azurerm_key_vault_secret              verified ✅ (fix confirmed via HCP run, destroyed)
+#   automatic-key-rotation-enabled azurerm_key_vault_key                 verified ✅ (fix confirmed via HCP run, destroyed)
+#   certificate-validity-12-months azurerm_key_vault_certificate         verified ✅ (fix confirmed via HCP run, destroyed)
+#   private-endpoints-used         azurerm_private_endpoint              verified ✅ (fix confirmed via HCP run, destroyed)
+#   keyvault-logging-enabled       azurerm_monitor_diagnostic_setting    verified ✅ (fix confirmed via HCP run, destroyed)
+#   defender-servers-on           azurerm_security_center_subscription_pricing ACTIVE ✓ (Phase 2 CIS, subscription-wide singleton)
 
 terraform {
   required_version = ">= 1.9.0"
@@ -465,325 +466,348 @@ resource "azurerm_resource_group" "rg" {
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ACTIVE -- Key Vault resources (Phase 2 CIS controls)
+# COMMENTED OUT -- Key Vault resources (tested previously, see PR history)
 # Policies: rbac-enabled, purge-protection-enabled, public-network-access-disabled,
 #           key-expiration-rbac, key-expiration-access-policy, secret-expiration-rbac,
 #           secret-expiration-access-policy, automatic-key-rotation-enabled,
 #           certificate-validity-12-months, private-endpoints-used, keyvault-logging-enabled
 # ─────────────────────────────────────────────────────────────────────────────
+# # ─────────────────────────────────────────────────────────────────────────────
+# # ACTIVE -- Key Vault resources (Phase 2 CIS controls)
+# # Policies: rbac-enabled, purge-protection-enabled, public-network-access-disabled,
+# #           key-expiration-rbac, key-expiration-access-policy, secret-expiration-rbac,
+# #           secret-expiration-access-policy, automatic-key-rotation-enabled,
+# #           certificate-validity-12-months, private-endpoints-used, keyvault-logging-enabled
+# # ─────────────────────────────────────────────────────────────────────────────
+#
+# data "azurerm_client_config" "current" {}
+#
+# # Vault A: RBAC model, public network access enabled (needed for Terraform's
+# # own data-plane calls to create keys/secrets/certs inside it).
+# resource "azurerm_key_vault" "rbac_data_ops" {
+#   name                          = "kv-rbac-dataops-ph2"
+#   location                      = azurerm_resource_group.rg.location
+#   resource_group_name           = azurerm_resource_group.rg.name
+#   tenant_id                     = data.azurerm_client_config.current.tenant_id
+#   sku_name                      = "standard"
+#   rbac_authorization_enabled    = true # rbac-enabled: PASS
+#   purge_protection_enabled      = true # purge-protection-enabled: PASS
+#   public_network_access_enabled = true # public-network-access-disabled: FAIL here (data-plane access required); PASS proven separately below
+# }
+#
+# resource "azurerm_role_assignment" "rbac_data_ops_self_admin" {
+#   scope                = azurerm_key_vault.rbac_data_ops.id
+#   role_definition_name = "Key Vault Administrator"
+#   principal_id         = data.azurerm_client_config.current.object_id
+# }
+#
+# # key-expiration-rbac: PASS — expiration_date set; also satisfies automatic-key-rotation-enabled
+# resource "azurerm_key_vault_key" "rbac_key_pass" {
+#   name            = "rbac-key-pass"
+#   key_vault_id    = azurerm_key_vault.rbac_data_ops.id
+#   key_type        = "RSA"
+#   key_size        = 2048
+#   key_opts        = ["decrypt", "encrypt", "sign", "verify", "wrapKey", "unwrapKey"]
+#   expiration_date = timeadd(timestamp(), "8760h") # +1 year
+#
+#   rotation_policy {
+#     automatic {
+#       time_after_creation = "P90D"
+#     }
+#     expire_after         = "P365D"
+#     notify_before_expiry = "P30D"
+#   }
+#
+#   depends_on = [azurerm_role_assignment.rbac_data_ops_self_admin]
+#
+#   lifecycle {
+#     ignore_changes = [expiration_date]
+#   }
+# }
+#
+# # key-expiration-rbac: FAIL — no expiration_date, no rotation_policy
+# resource "azurerm_key_vault_key" "rbac_key_fail" {
+#   name         = "rbac-key-fail"
+#   key_vault_id = azurerm_key_vault.rbac_data_ops.id
+#   key_type     = "RSA"
+#   key_size     = 2048
+#   key_opts     = ["decrypt", "encrypt", "sign", "verify", "wrapKey", "unwrapKey"]
+#
+#   depends_on = [azurerm_role_assignment.rbac_data_ops_self_admin]
+# }
+#
+# # secret-expiration-rbac: PASS — expiration_date set
+# resource "azurerm_key_vault_secret" "rbac_secret_pass" {
+#   name            = "rbac-secret-pass"
+#   value           = "placeholder-value-pass"
+#   key_vault_id    = azurerm_key_vault.rbac_data_ops.id
+#   expiration_date = timeadd(timestamp(), "8760h")
+#
+#   depends_on = [azurerm_role_assignment.rbac_data_ops_self_admin]
+#
+#   lifecycle {
+#     ignore_changes = [expiration_date]
+#   }
+# }
+#
+# # secret-expiration-rbac: FAIL — no expiration_date
+# resource "azurerm_key_vault_secret" "rbac_secret_fail" {
+#   name         = "rbac-secret-fail"
+#   value        = "placeholder-value-fail"
+#   key_vault_id = azurerm_key_vault.rbac_data_ops.id
+#
+#   depends_on = [azurerm_role_assignment.rbac_data_ops_self_admin]
+# }
+#
+# # certificate-validity-12-months: PASS — validity_in_months = 12
+# resource "azurerm_key_vault_certificate" "cert_pass" {
+#   name         = "cert-validity-pass"
+#   key_vault_id = azurerm_key_vault.rbac_data_ops.id
+#
+#   certificate_policy {
+#     issuer_parameters {
+#       name = "Self"
+#     }
+#     key_properties {
+#       exportable = true
+#       key_type   = "RSA"
+#       key_size   = 2048
+#       reuse_key  = true
+#     }
+#     lifetime_action {
+#       action {
+#         action_type = "AutoRenew"
+#       }
+#       trigger {
+#         days_before_expiry = 30
+#       }
+#     }
+#     secret_properties {
+#       content_type = "application/x-pkcs12"
+#     }
+#     x509_certificate_properties {
+#       subject            = "CN=cert-pass.example.com"
+#       validity_in_months = 12
+#       key_usage = [
+#         "cRLSign", "dataEncipherment", "digitalSignature", "keyAgreement",
+#         "keyCertSign", "keyEncipherment",
+#       ]
+#     }
+#   }
+#
+#   depends_on = [azurerm_role_assignment.rbac_data_ops_self_admin]
+# }
+#
+# # certificate-validity-12-months: FAIL — validity_in_months = 24
+# resource "azurerm_key_vault_certificate" "cert_fail" {
+#   name         = "cert-validity-fail"
+#   key_vault_id = azurerm_key_vault.rbac_data_ops.id
+#
+#   certificate_policy {
+#     issuer_parameters {
+#       name = "Self"
+#     }
+#     key_properties {
+#       exportable = true
+#       key_type   = "RSA"
+#       key_size   = 2048
+#       reuse_key  = true
+#     }
+#     lifetime_action {
+#       action {
+#         action_type = "AutoRenew"
+#       }
+#       trigger {
+#         days_before_expiry = 30
+#       }
+#     }
+#     secret_properties {
+#       content_type = "application/x-pkcs12"
+#     }
+#     x509_certificate_properties {
+#       subject            = "CN=cert-fail.example.com"
+#       validity_in_months = 24
+#       key_usage = [
+#         "cRLSign", "dataEncipherment", "digitalSignature", "keyAgreement",
+#         "keyCertSign", "keyEncipherment",
+#       ]
+#     }
+#   }
+#
+#   depends_on = [azurerm_role_assignment.rbac_data_ops_self_admin]
+# }
+#
+# # Vault B: access-policy model (RBAC disabled) — tests rbac-enabled FAIL,
+# # purge-protection-enabled FAIL, public-network-access-disabled FAIL, and
+# # hosts the access-policy-path key/secret compliant+fail pairs.
+# resource "azurerm_key_vault" "access_policy_vault" {
+#   name                          = "kv-accesspolicy-ph2"
+#   location                      = azurerm_resource_group.rg.location
+#   resource_group_name           = azurerm_resource_group.rg.name
+#   tenant_id                     = data.azurerm_client_config.current.tenant_id
+#   sku_name                      = "standard"
+#   rbac_authorization_enabled    = false # rbac-enabled: FAIL
+#   purge_protection_enabled      = false # purge-protection-enabled: FAIL
+#   public_network_access_enabled = true  # public-network-access-disabled: FAIL
+# }
+#
+# resource "azurerm_key_vault_access_policy" "access_policy_self" {
+#   key_vault_id = azurerm_key_vault.access_policy_vault.id
+#   tenant_id    = data.azurerm_client_config.current.tenant_id
+#   object_id    = data.azurerm_client_config.current.object_id
+#
+#   key_permissions = [
+#     "Create", "Get", "List", "Delete", "Purge", "GetRotationPolicy", "SetRotationPolicy",
+#   ]
+#   secret_permissions = [
+#     "Set", "Get", "List", "Delete", "Purge",
+#   ]
+# }
+#
+# # key-expiration-access-policy: PASS — expiration_date set
+# resource "azurerm_key_vault_key" "access_policy_key_pass" {
+#   name            = "ap-key-pass"
+#   key_vault_id    = azurerm_key_vault.access_policy_vault.id
+#   key_type        = "RSA"
+#   key_size        = 2048
+#   key_opts        = ["decrypt", "encrypt", "sign", "verify", "wrapKey", "unwrapKey"]
+#   expiration_date = timeadd(timestamp(), "8760h")
+#
+#   depends_on = [azurerm_key_vault_access_policy.access_policy_self]
+#
+#   lifecycle {
+#     ignore_changes = [expiration_date]
+#   }
+# }
+#
+# # key-expiration-access-policy: FAIL — no expiration_date
+# resource "azurerm_key_vault_key" "access_policy_key_fail" {
+#   name         = "ap-key-fail"
+#   key_vault_id = azurerm_key_vault.access_policy_vault.id
+#   key_type     = "RSA"
+#   key_size     = 2048
+#   key_opts     = ["decrypt", "encrypt", "sign", "verify", "wrapKey", "unwrapKey"]
+#
+#   depends_on = [azurerm_key_vault_access_policy.access_policy_self]
+# }
+#
+# # secret-expiration-access-policy: PASS — expiration_date set
+# resource "azurerm_key_vault_secret" "access_policy_secret_pass" {
+#   name            = "ap-secret-pass"
+#   value           = "placeholder-value-pass"
+#   key_vault_id    = azurerm_key_vault.access_policy_vault.id
+#   expiration_date = timeadd(timestamp(), "8760h")
+#
+#   depends_on = [azurerm_key_vault_access_policy.access_policy_self]
+#
+#   lifecycle {
+#     ignore_changes = [expiration_date]
+#   }
+# }
+#
+# # secret-expiration-access-policy: FAIL — no expiration_date
+# resource "azurerm_key_vault_secret" "access_policy_secret_fail" {
+#   name         = "ap-secret-fail"
+#   value        = "placeholder-value-fail"
+#   key_vault_id = azurerm_key_vault.access_policy_vault.id
+#
+#   depends_on = [azurerm_key_vault_access_policy.access_policy_self]
+# }
+#
+# # Vault C: network-isolated control-plane-only vault — no data-plane children
+# # (public network access disabled blocks data-plane calls, so we do not
+# # attempt to create keys/secrets/certs here). Proves the PASS case for
+# # public-network-access-disabled together with rbac-enabled and
+# # purge-protection-enabled.
+# resource "azurerm_key_vault" "network_isolated_pass" {
+#   name                          = "kv-netiso-pass-ph2"
+#   location                      = azurerm_resource_group.rg.location
+#   resource_group_name           = azurerm_resource_group.rg.name
+#   tenant_id                     = data.azurerm_client_config.current.tenant_id
+#   sku_name                      = "standard"
+#   rbac_authorization_enabled    = true  # rbac-enabled: PASS
+#   purge_protection_enabled      = true  # purge-protection-enabled: PASS
+#   public_network_access_enabled = false # public-network-access-disabled: PASS
+# }
+#
+# # Private Endpoint infrastructure for private-endpoints-used
+# resource "azurerm_virtual_network" "kv_vnet" {
+#   name                = "kv-ph2-vnet"
+#   address_space       = ["10.10.0.0/16"]
+#   location            = azurerm_resource_group.rg.location
+#   resource_group_name = azurerm_resource_group.rg.name
+# }
+#
+# resource "azurerm_subnet" "kv_pe_subnet" {
+#   name                              = "kv-pe-subnet"
+#   resource_group_name               = azurerm_resource_group.rg.name
+#   virtual_network_name              = azurerm_virtual_network.kv_vnet.name
+#   address_prefixes                  = ["10.10.1.0/24"]
+#   private_endpoint_network_policies = "Disabled"
+# }
+#
+# # private-endpoints-used: PASS — private endpoint targets rbac_data_ops
+# resource "azurerm_private_endpoint" "kv_pe" {
+#   name                = "kv-rbac-dataops-pe"
+#   location            = azurerm_resource_group.rg.location
+#   resource_group_name = azurerm_resource_group.rg.name
+#   subnet_id           = azurerm_subnet.kv_pe_subnet.id
+#
+#   private_service_connection {
+#     name                           = "kv-rbac-dataops-psc"
+#     private_connection_resource_id = azurerm_key_vault.rbac_data_ops.id
+#     subresource_names              = ["vault"]
+#     is_manual_connection           = false
+#   }
+# }
+# # private-endpoints-used: FAIL — access_policy_vault has no matching private endpoint (implicit, no resource needed)
+#
+# # Log Analytics Workspace + diagnostic settings for keyvault-logging-enabled
+# resource "azurerm_log_analytics_workspace" "kv_law" {
+#   name                = "kv-ph2-law"
+#   location            = azurerm_resource_group.rg.location
+#   resource_group_name = azurerm_resource_group.rg.name
+#   sku                 = "PerGB2018"
+#   retention_in_days   = 30
+# }
+#
+# # keyvault-logging-enabled: PASS — both 'audit' and 'allLogs' category groups enabled
+# resource "azurerm_monitor_diagnostic_setting" "kv_diag_pass" {
+#   name                       = "kv-rbac-dataops-diag-pass"
+#   target_resource_id         = azurerm_key_vault.rbac_data_ops.id
+#   log_analytics_workspace_id = azurerm_log_analytics_workspace.kv_law.id
+#
+#   enabled_log {
+#     category_group = "audit"
+#   }
+#   enabled_log {
+#     category_group = "allLogs"
+#   }
+# }
+#
+# # keyvault-logging-enabled: FAIL — destination configured but missing 'allLogs'
+# resource "azurerm_monitor_diagnostic_setting" "kv_diag_fail" {
+#   name                       = "kv-accesspolicy-diag-fail"
+#   target_resource_id         = azurerm_key_vault.access_policy_vault.id
+#   log_analytics_workspace_id = azurerm_log_analytics_workspace.kv_law.id
+#
+#   enabled_log {
+#     category_group = "audit"
+#   }
+# }
 
-data "azurerm_client_config" "current" {}
+# ─────────────────────────────────────────────────────────────────────────────
+# ACTIVE -- Security Center / Defender resources (Phase 2 CIS controls)
+# Policy: defender-servers-on (only; other 6 Security Center policies verified
+#         via local tfpolicy test only -- subscription-wide singleton settings
+#         intentionally not applied here one at a time per user direction)
+# ─────────────────────────────────────────────────────────────────────────────
 
-# Vault A: RBAC model, public network access enabled (needed for Terraform's
-# own data-plane calls to create keys/secrets/certs inside it).
-resource "azurerm_key_vault" "rbac_data_ops" {
-  name                          = "kv-rbac-dataops-ph2"
-  location                      = azurerm_resource_group.rg.location
-  resource_group_name           = azurerm_resource_group.rg.name
-  tenant_id                     = data.azurerm_client_config.current.tenant_id
-  sku_name                      = "standard"
-  rbac_authorization_enabled    = true # rbac-enabled: PASS
-  purge_protection_enabled      = true # purge-protection-enabled: PASS
-  public_network_access_enabled = true # public-network-access-disabled: FAIL here (data-plane access required); PASS proven separately below
-}
-
-resource "azurerm_role_assignment" "rbac_data_ops_self_admin" {
-  scope                = azurerm_key_vault.rbac_data_ops.id
-  role_definition_name = "Key Vault Administrator"
-  principal_id         = data.azurerm_client_config.current.object_id
-}
-
-# key-expiration-rbac: PASS — expiration_date set; also satisfies automatic-key-rotation-enabled
-resource "azurerm_key_vault_key" "rbac_key_pass" {
-  name            = "rbac-key-pass"
-  key_vault_id    = azurerm_key_vault.rbac_data_ops.id
-  key_type        = "RSA"
-  key_size        = 2048
-  key_opts        = ["decrypt", "encrypt", "sign", "verify", "wrapKey", "unwrapKey"]
-  expiration_date = timeadd(timestamp(), "8760h") # +1 year
-
-  rotation_policy {
-    automatic {
-      time_after_creation = "P90D"
-    }
-    expire_after         = "P365D"
-    notify_before_expiry = "P30D"
-  }
-
-  depends_on = [azurerm_role_assignment.rbac_data_ops_self_admin]
-
-  lifecycle {
-    ignore_changes = [expiration_date]
-  }
-}
-
-# key-expiration-rbac: FAIL — no expiration_date, no rotation_policy
-resource "azurerm_key_vault_key" "rbac_key_fail" {
-  name         = "rbac-key-fail"
-  key_vault_id = azurerm_key_vault.rbac_data_ops.id
-  key_type     = "RSA"
-  key_size     = 2048
-  key_opts     = ["decrypt", "encrypt", "sign", "verify", "wrapKey", "unwrapKey"]
-
-  depends_on = [azurerm_role_assignment.rbac_data_ops_self_admin]
-}
-
-# secret-expiration-rbac: PASS — expiration_date set
-resource "azurerm_key_vault_secret" "rbac_secret_pass" {
-  name            = "rbac-secret-pass"
-  value           = "placeholder-value-pass"
-  key_vault_id    = azurerm_key_vault.rbac_data_ops.id
-  expiration_date = timeadd(timestamp(), "8760h")
-
-  depends_on = [azurerm_role_assignment.rbac_data_ops_self_admin]
-
-  lifecycle {
-    ignore_changes = [expiration_date]
-  }
-}
-
-# secret-expiration-rbac: FAIL — no expiration_date
-resource "azurerm_key_vault_secret" "rbac_secret_fail" {
-  name         = "rbac-secret-fail"
-  value        = "placeholder-value-fail"
-  key_vault_id = azurerm_key_vault.rbac_data_ops.id
-
-  depends_on = [azurerm_role_assignment.rbac_data_ops_self_admin]
-}
-
-# certificate-validity-12-months: PASS — validity_in_months = 12
-resource "azurerm_key_vault_certificate" "cert_pass" {
-  name         = "cert-validity-pass"
-  key_vault_id = azurerm_key_vault.rbac_data_ops.id
-
-  certificate_policy {
-    issuer_parameters {
-      name = "Self"
-    }
-    key_properties {
-      exportable = true
-      key_type   = "RSA"
-      key_size   = 2048
-      reuse_key  = true
-    }
-    lifetime_action {
-      action {
-        action_type = "AutoRenew"
-      }
-      trigger {
-        days_before_expiry = 30
-      }
-    }
-    secret_properties {
-      content_type = "application/x-pkcs12"
-    }
-    x509_certificate_properties {
-      subject            = "CN=cert-pass.example.com"
-      validity_in_months = 12
-      key_usage = [
-        "cRLSign", "dataEncipherment", "digitalSignature", "keyAgreement",
-        "keyCertSign", "keyEncipherment",
-      ]
-    }
-  }
-
-  depends_on = [azurerm_role_assignment.rbac_data_ops_self_admin]
-}
-
-# certificate-validity-12-months: FAIL — validity_in_months = 24
-resource "azurerm_key_vault_certificate" "cert_fail" {
-  name         = "cert-validity-fail"
-  key_vault_id = azurerm_key_vault.rbac_data_ops.id
-
-  certificate_policy {
-    issuer_parameters {
-      name = "Self"
-    }
-    key_properties {
-      exportable = true
-      key_type   = "RSA"
-      key_size   = 2048
-      reuse_key  = true
-    }
-    lifetime_action {
-      action {
-        action_type = "AutoRenew"
-      }
-      trigger {
-        days_before_expiry = 30
-      }
-    }
-    secret_properties {
-      content_type = "application/x-pkcs12"
-    }
-    x509_certificate_properties {
-      subject            = "CN=cert-fail.example.com"
-      validity_in_months = 24
-      key_usage = [
-        "cRLSign", "dataEncipherment", "digitalSignature", "keyAgreement",
-        "keyCertSign", "keyEncipherment",
-      ]
-    }
-  }
-
-  depends_on = [azurerm_role_assignment.rbac_data_ops_self_admin]
-}
-
-# Vault B: access-policy model (RBAC disabled) — tests rbac-enabled FAIL,
-# purge-protection-enabled FAIL, public-network-access-disabled FAIL, and
-# hosts the access-policy-path key/secret compliant+fail pairs.
-resource "azurerm_key_vault" "access_policy_vault" {
-  name                          = "kv-accesspolicy-ph2"
-  location                      = azurerm_resource_group.rg.location
-  resource_group_name           = azurerm_resource_group.rg.name
-  tenant_id                     = data.azurerm_client_config.current.tenant_id
-  sku_name                      = "standard"
-  rbac_authorization_enabled    = false # rbac-enabled: FAIL
-  purge_protection_enabled      = false # purge-protection-enabled: FAIL
-  public_network_access_enabled = true  # public-network-access-disabled: FAIL
-}
-
-resource "azurerm_key_vault_access_policy" "access_policy_self" {
-  key_vault_id = azurerm_key_vault.access_policy_vault.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = data.azurerm_client_config.current.object_id
-
-  key_permissions = [
-    "Create", "Get", "List", "Delete", "Purge", "GetRotationPolicy", "SetRotationPolicy",
-  ]
-  secret_permissions = [
-    "Set", "Get", "List", "Delete", "Purge",
-  ]
-}
-
-# key-expiration-access-policy: PASS — expiration_date set
-resource "azurerm_key_vault_key" "access_policy_key_pass" {
-  name            = "ap-key-pass"
-  key_vault_id    = azurerm_key_vault.access_policy_vault.id
-  key_type        = "RSA"
-  key_size        = 2048
-  key_opts        = ["decrypt", "encrypt", "sign", "verify", "wrapKey", "unwrapKey"]
-  expiration_date = timeadd(timestamp(), "8760h")
-
-  depends_on = [azurerm_key_vault_access_policy.access_policy_self]
-
-  lifecycle {
-    ignore_changes = [expiration_date]
-  }
-}
-
-# key-expiration-access-policy: FAIL — no expiration_date
-resource "azurerm_key_vault_key" "access_policy_key_fail" {
-  name         = "ap-key-fail"
-  key_vault_id = azurerm_key_vault.access_policy_vault.id
-  key_type     = "RSA"
-  key_size     = 2048
-  key_opts     = ["decrypt", "encrypt", "sign", "verify", "wrapKey", "unwrapKey"]
-
-  depends_on = [azurerm_key_vault_access_policy.access_policy_self]
-}
-
-# secret-expiration-access-policy: PASS — expiration_date set
-resource "azurerm_key_vault_secret" "access_policy_secret_pass" {
-  name            = "ap-secret-pass"
-  value           = "placeholder-value-pass"
-  key_vault_id    = azurerm_key_vault.access_policy_vault.id
-  expiration_date = timeadd(timestamp(), "8760h")
-
-  depends_on = [azurerm_key_vault_access_policy.access_policy_self]
-
-  lifecycle {
-    ignore_changes = [expiration_date]
-  }
-}
-
-# secret-expiration-access-policy: FAIL — no expiration_date
-resource "azurerm_key_vault_secret" "access_policy_secret_fail" {
-  name         = "ap-secret-fail"
-  value        = "placeholder-value-fail"
-  key_vault_id = azurerm_key_vault.access_policy_vault.id
-
-  depends_on = [azurerm_key_vault_access_policy.access_policy_self]
-}
-
-# Vault C: network-isolated control-plane-only vault — no data-plane children
-# (public network access disabled blocks data-plane calls, so we do not
-# attempt to create keys/secrets/certs here). Proves the PASS case for
-# public-network-access-disabled together with rbac-enabled and
-# purge-protection-enabled.
-resource "azurerm_key_vault" "network_isolated_pass" {
-  name                          = "kv-netiso-pass-ph2"
-  location                      = azurerm_resource_group.rg.location
-  resource_group_name           = azurerm_resource_group.rg.name
-  tenant_id                     = data.azurerm_client_config.current.tenant_id
-  sku_name                      = "standard"
-  rbac_authorization_enabled    = true  # rbac-enabled: PASS
-  purge_protection_enabled      = true  # purge-protection-enabled: PASS
-  public_network_access_enabled = false # public-network-access-disabled: PASS
-}
-
-# Private Endpoint infrastructure for private-endpoints-used
-resource "azurerm_virtual_network" "kv_vnet" {
-  name                = "kv-ph2-vnet"
-  address_space       = ["10.10.0.0/16"]
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-}
-
-resource "azurerm_subnet" "kv_pe_subnet" {
-  name                              = "kv-pe-subnet"
-  resource_group_name               = azurerm_resource_group.rg.name
-  virtual_network_name              = azurerm_virtual_network.kv_vnet.name
-  address_prefixes                  = ["10.10.1.0/24"]
-  private_endpoint_network_policies = "Disabled"
-}
-
-# private-endpoints-used: PASS — private endpoint targets rbac_data_ops
-resource "azurerm_private_endpoint" "kv_pe" {
-  name                = "kv-rbac-dataops-pe"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  subnet_id           = azurerm_subnet.kv_pe_subnet.id
-
-  private_service_connection {
-    name                           = "kv-rbac-dataops-psc"
-    private_connection_resource_id = azurerm_key_vault.rbac_data_ops.id
-    subresource_names              = ["vault"]
-    is_manual_connection           = false
-  }
-}
-# private-endpoints-used: FAIL — access_policy_vault has no matching private endpoint (implicit, no resource needed)
-
-# Log Analytics Workspace + diagnostic settings for keyvault-logging-enabled
-resource "azurerm_log_analytics_workspace" "kv_law" {
-  name                = "kv-ph2-law"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  sku                 = "PerGB2018"
-  retention_in_days   = 30
-}
-
-# keyvault-logging-enabled: PASS — both 'audit' and 'allLogs' category groups enabled
-resource "azurerm_monitor_diagnostic_setting" "kv_diag_pass" {
-  name                       = "kv-rbac-dataops-diag-pass"
-  target_resource_id         = azurerm_key_vault.rbac_data_ops.id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.kv_law.id
-
-  enabled_log {
-    category_group = "audit"
-  }
-  enabled_log {
-    category_group = "allLogs"
-  }
-}
-
-# keyvault-logging-enabled: FAIL — destination configured but missing 'allLogs'
-resource "azurerm_monitor_diagnostic_setting" "kv_diag_fail" {
-  name                       = "kv-accesspolicy-diag-fail"
-  target_resource_id         = azurerm_key_vault.access_policy_vault.id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.kv_law.id
-
-  enabled_log {
-    category_group = "audit"
-  }
+# defender-servers-on: PASS — Defender for Servers (VirtualMachines) set to Standard.
+# NOTE: subscription-wide singleton setting (not scoped to a resource group).
+# Confirmed 0 VMs exist in this subscription at time of testing, so this incurs
+# no actual per-VM-hour billing while active. Restored to Free on destroy.
+resource "azurerm_security_center_subscription_pricing" "vm_standard" {
+  tier          = "Standard"
+  resource_type = "VirtualMachines"
 }
