@@ -31,7 +31,9 @@
 #   certificate-validity-12-months azurerm_key_vault_certificate         verified ✅ (fix confirmed via HCP run, destroyed)
 #   private-endpoints-used         azurerm_private_endpoint              verified ✅ (fix confirmed via HCP run, destroyed)
 #   keyvault-logging-enabled       azurerm_monitor_diagnostic_setting    verified ✅ (fix confirmed via HCP run, destroyed)
-#   defender-servers-on           azurerm_security_center_subscription_pricing ACTIVE ✓ (Phase 2 CIS, subscription-wide singleton)
+#   defender-servers-on           azurerm_security_center_subscription_pricing verified ✅ (fix confirmed via HCP run, destroyed)
+#   firewall-rule-create-update-alert azurerm_monitor_activity_log_alert    ACTIVE ✓ (Phase 2 CIS)
+#   firewall-rule-delete-alert     azurerm_monitor_activity_log_alert     ACTIVE ✓ (Phase 2 CIS)
 
 terraform {
   required_version = ">= 1.9.0"
@@ -797,17 +799,72 @@ resource "azurerm_resource_group" "rg" {
 # }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ACTIVE -- Security Center / Defender resources (Phase 2 CIS controls)
-# Policy: defender-servers-on (only; other 6 Security Center policies verified
-#         via local tfpolicy test only -- subscription-wide singleton settings
-#         intentionally not applied here one at a time per user direction)
+# ─────────────────────────────────────────────────────────────────────────────
+# COMMENTED OUT -- Security Center / Defender resources (tested previously, see PR history)
+# Policy: defender-servers-on (verified via HCP run, destroyed; restored to Free)
+# ─────────────────────────────────────────────────────────────────────────────
+# # ACTIVE -- Security Center / Defender resources (Phase 2 CIS controls)
+# # Policy: defender-servers-on (only; other 6 Security Center policies verified
+# #         via local tfpolicy test only -- subscription-wide singleton settings
+# #         intentionally not applied here one at a time per user direction)
+# # ─────────────────────────────────────────────────────────────────────────────
+#
+# # defender-servers-on: PASS — Defender for Servers (VirtualMachines) set to Standard.
+# # NOTE: subscription-wide singleton setting (not scoped to a resource group).
+# # Confirmed 0 VMs exist in this subscription at time of testing, so this incurs
+# # no actual per-VM-hour billing while active. Restored to Free on destroy.
+# resource "azurerm_security_center_subscription_pricing" "vm_standard" {
+#   tier          = "Standard"
+#   resource_type = "VirtualMachines"
+# }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ACTIVE -- SQL Server Firewall Rule activity log alert resources (Phase 2 CIS)
+# Policies: firewall-rule-create-update-alert, firewall-rule-delete-alert
 # ─────────────────────────────────────────────────────────────────────────────
 
-# defender-servers-on: PASS — Defender for Servers (VirtualMachines) set to Standard.
-# NOTE: subscription-wide singleton setting (not scoped to a resource group).
-# Confirmed 0 VMs exist in this subscription at time of testing, so this incurs
-# no actual per-VM-hour billing while active. Restored to Free on destroy.
-resource "azurerm_security_center_subscription_pricing" "vm_standard" {
-  tier          = "Standard"
-  resource_type = "VirtualMachines"
+data "azurerm_subscription" "current" {}
+
+resource "azurerm_monitor_action_group" "sql_fw_notify" {
+  name                = "sql-fw-notify-ag"
+  resource_group_name = azurerm_resource_group.rg.name
+  short_name          = "sqlfwnotif"
+}
+
+# firewall-rule-create-update-alert: PASS — enabled, category=Administrative,
+# operation_name=Microsoft.Sql/servers/firewallRules/write, action group assigned
+resource "azurerm_monitor_activity_log_alert" "sql_fw_create_update_pass" {
+  name                = "sql-fw-create-update-alert-pass"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = "global"
+  scopes              = [data.azurerm_subscription.current.id]
+  enabled             = true
+
+  criteria {
+    category       = "Administrative"
+    operation_name = "Microsoft.Sql/servers/firewallRules/write"
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.sql_fw_notify.id
+  }
+}
+
+# firewall-rule-delete-alert: PASS — enabled, category=Administrative,
+# operation_name=Microsoft.Sql/servers/firewallRules/delete, action group assigned
+resource "azurerm_monitor_activity_log_alert" "sql_fw_delete_pass" {
+  name                = "sql-fw-delete-alert-pass"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = "global"
+  scopes              = [data.azurerm_subscription.current.id]
+  enabled             = true
+
+  criteria {
+    category       = "Administrative"
+    operation_name = "Microsoft.Sql/servers/firewallRules/delete"
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.sql_fw_notify.id
+  }
 }
