@@ -38,10 +38,10 @@
 #   defender-sql-servers-on-machines-on azurerm_security_center_subscription_pricing verified ✅ (confirmed via HCP run 2026-09-25, destroyed)
 #   defender-keyvault-on          azurerm_security_center_subscription_pricing verified ✅ (confirmed via HCP run 2026-09-25, destroyed)
 #   defender-vm-os-updates        azurerm_security_center_subscription_pricing verified ✅ (confirmed via HCP run 2026-09-25, destroyed)
-#   firewall-rule-create-update-alert azurerm_monitor_activity_log_alert    RE-VERIFYING (policy rewritten post-verification,
-#                                                                          commit 5e4955f — re-running against new logic)
-#   firewall-rule-delete-alert     azurerm_monitor_activity_log_alert     RE-VERIFYING (policy rewritten post-verification,
-#                                                                          commit 392a684 — re-running against new logic)
+#   firewall-rule-create-update-alert azurerm_monitor_activity_log_alert    verified ✅ (re-confirmed via HCP run 2026-09-25
+#                                                                          against rewritten logic, commit 5e4955f, destroyed)
+#   firewall-rule-delete-alert     azurerm_monitor_activity_log_alert     verified ✅ (re-confirmed via HCP run 2026-09-25
+#                                                                          against rewritten logic, commit 392a684, destroyed)
 #   bastion-host-exists            azurerm_bastion_host                   verified ✅ (local tfpolicy test only — real Bastion Host
 #                                                                          costs ~$0.19/hr; not applied in HCP per user decision)
 
@@ -872,7 +872,7 @@ resource "azurerm_resource_group" "rg" {
 # }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ACTIVE (RE-VERIFICATION) -- SQL Server Firewall Rule activity log alert resources
+# COMMENTED OUT -- SQL Server Firewall Rule activity log alert resources (RE-VERIFIED via HCP run 2026-09-25 against rewritten logic, both PASSED, destroyed)
 # Policies: firewall-rule-create-update-alert (6.1.2.7), firewall-rule-delete-alert (6.1.2.8)
 # NOTE: both policies were REWRITTEN post-original-verification (existence-check
 # refactor, commits 5e4955f / 392a684) — the new logic was only confirmed to
@@ -880,48 +880,48 @@ resource "azurerm_resource_group" "rg" {
 # also correctly PASSES when a qualifying alert exists.
 # ─────────────────────────────────────────────────────────────────────────────
 
-data "azurerm_subscription" "current" {}
+# data "azurerm_subscription" "current" {}
 
-resource "azurerm_monitor_action_group" "sql_fw_notify" {
-  name                = "sql-fw-notify-ag"
-  resource_group_name = azurerm_resource_group.rg.name
-  short_name          = "sqlfwnotif"
-}
+# resource "azurerm_monitor_action_group" "sql_fw_notify" {
+#   name                = "sql-fw-notify-ag"
+#   resource_group_name = azurerm_resource_group.rg.name
+#   short_name          = "sqlfwnotif"
+# }
 
 # firewall-rule-create-update-alert: PASS — enabled, category=Administrative,
 # operation_name=Microsoft.Sql/servers/firewallRules/write, action group assigned
-resource "azurerm_monitor_activity_log_alert" "sql_fw_create_update_pass" {
-  name                = "sql-fw-create-update-alert-pass"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = "global"
-  scopes              = [data.azurerm_subscription.current.id]
-  enabled             = true
+# resource "azurerm_monitor_activity_log_alert" "sql_fw_create_update_pass" {
+#   name                = "sql-fw-create-update-alert-pass"
+#   resource_group_name = azurerm_resource_group.rg.name
+#   location            = "global"
+#   scopes              = [data.azurerm_subscription.current.id]
+#   enabled             = true
 
-  criteria {
-    category       = "Administrative"
-    operation_name = "Microsoft.Sql/servers/firewallRules/write"
-  }
+#   criteria {
+#     category       = "Administrative"
+#     operation_name = "Microsoft.Sql/servers/firewallRules/write"
+#   }
 
-  action {
-    action_group_id = azurerm_monitor_action_group.sql_fw_notify.id
-  }
-}
+#   action {
+#     action_group_id = azurerm_monitor_action_group.sql_fw_notify.id
+#   }
+# }
 
 # firewall-rule-delete-alert: PASS — enabled, category=Administrative,
 # operation_name=Microsoft.Sql/servers/firewallRules/delete, action group assigned
-resource "azurerm_monitor_activity_log_alert" "sql_fw_delete_pass" {
-  name                = "sql-fw-delete-alert-pass"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = "global"
-  scopes              = [data.azurerm_subscription.current.id]
-  enabled             = true
+# resource "azurerm_monitor_activity_log_alert" "sql_fw_delete_pass" {
+#   name                = "sql-fw-delete-alert-pass"
+#   resource_group_name = azurerm_resource_group.rg.name
+#   location            = "global"
+#   scopes              = [data.azurerm_subscription.current.id]
+#   enabled             = true
 
-  criteria {
-    category       = "Administrative"
-    operation_name = "Microsoft.Sql/servers/firewallRules/delete"
-  }
+#   criteria {
+#     category       = "Administrative"
+#     operation_name = "Microsoft.Sql/servers/firewallRules/delete"
+#   }
 
-  action {
-    action_group_id = azurerm_monitor_action_group.sql_fw_notify.id
-  }
-}
+#   action {
+#     action_group_id = azurerm_monitor_action_group.sql_fw_notify.id
+#   }
+# }
