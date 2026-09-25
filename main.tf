@@ -801,24 +801,67 @@ resource "azurerm_resource_group" "rg" {
 # }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# ACTIVE -- Security Center / Defender resources (Phase 2 CIS controls, remaining 6)
+# Policies: endpoint-protection-status-on, defender-containers-on,
+#           defender-sql-databases-on, defender-sql-servers-on-machines-on,
+#           defender-keyvault-on, defender-vm-os-updates
+# NOTE: all subscription-wide singleton settings (not scoped to a resource group).
+# Each targets a distinct resource_type / setting_name, so they can be applied
+# simultaneously without conflicting with one another. Restored to Free/disabled
+# on destroy. defender-servers-on (8.1.3.1) already verified previously.
 # ─────────────────────────────────────────────────────────────────────────────
-# COMMENTED OUT -- Security Center / Defender resources (tested previously, see PR history)
-# Policy: defender-servers-on (verified via HCP run, destroyed; restored to Free)
-# ─────────────────────────────────────────────────────────────────────────────
-# # ACTIVE -- Security Center / Defender resources (Phase 2 CIS controls)
-# # Policy: defender-servers-on (only; other 6 Security Center policies verified
-# #         via local tfpolicy test only -- subscription-wide singleton settings
-# #         intentionally not applied here one at a time per user direction)
-# # ─────────────────────────────────────────────────────────────────────────────
-#
-# # defender-servers-on: PASS — Defender for Servers (VirtualMachines) set to Standard.
-# # NOTE: subscription-wide singleton setting (not scoped to a resource group).
-# # Confirmed 0 VMs exist in this subscription at time of testing, so this incurs
-# # no actual per-VM-hour billing while active. Restored to Free on destroy.
-# resource "azurerm_security_center_subscription_pricing" "vm_standard" {
-#   tier          = "Standard"
-#   resource_type = "VirtualMachines"
-# }
+
+# defender-vm-os-updates (8.1.10): PASS — VirtualMachines plan set to Standard.
+# Confirmed 0 VMs exist in this subscription, so no per-VM-hour billing while active.
+resource "azurerm_security_center_subscription_pricing" "vm_standard" {
+  tier          = "Standard"
+  resource_type = "VirtualMachines"
+}
+
+# defender-sql-databases-on (8.1.7.3): PASS — SqlServers plan set to Standard.
+resource "azurerm_security_center_subscription_pricing" "sql_servers_standard" {
+  tier          = "Standard"
+  resource_type = "SqlServers"
+}
+
+# defender-sql-servers-on-machines-on (8.1.7.4): PASS — SqlServerVirtualMachines plan set to Standard.
+resource "azurerm_security_center_subscription_pricing" "sql_vm_standard" {
+  tier          = "Standard"
+  resource_type = "SqlServerVirtualMachines"
+}
+
+# defender-keyvault-on (8.1.8.1): PASS — KeyVaults plan set to Standard.
+resource "azurerm_security_center_subscription_pricing" "keyvaults_standard" {
+  tier          = "Standard"
+  resource_type = "KeyVaults"
+}
+
+# defender-containers-on (8.1.4.1): PASS — Containers plan set to Standard with all
+# 4 required extensions present (ContainerRegistriesVulnerabilityAssessments,
+# AgentlessDiscoveryForKubernetes, AgentlessVmScanning, ContainerSensor).
+resource "azurerm_security_center_subscription_pricing" "containers_standard" {
+  tier          = "Standard"
+  resource_type = "Containers"
+
+  extension {
+    name = "ContainerRegistriesVulnerabilityAssessments"
+  }
+  extension {
+    name = "AgentlessDiscoveryForKubernetes"
+  }
+  extension {
+    name = "AgentlessVmScanning"
+  }
+  extension {
+    name = "ContainerSensor"
+  }
+}
+
+# endpoint-protection-status-on (8.1.3.3): PASS — WDATP setting enabled=true.
+resource "azurerm_security_center_setting" "wdatp_enabled" {
+  setting_name = "WDATP"
+  enabled      = true
+}
 
 # # ─────────────────────────────────────────────────────────────────────────────
 # COMMENTED OUT -- SQL Server Firewall Rule activity log alert resources (verified via HCP run, destroyed)
