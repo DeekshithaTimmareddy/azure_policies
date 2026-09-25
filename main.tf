@@ -32,8 +32,16 @@
 #   private-endpoints-used         azurerm_private_endpoint              verified ✅ (fix confirmed via HCP run, destroyed)
 #   keyvault-logging-enabled       azurerm_monitor_diagnostic_setting    verified ✅ (fix confirmed via HCP run, destroyed)
 #   defender-servers-on           azurerm_security_center_subscription_pricing verified ✅ (fix confirmed via HCP run, destroyed)
-#   firewall-rule-create-update-alert azurerm_monitor_activity_log_alert    verified ✅ (fix confirmed via HCP run, destroyed)
-#   firewall-rule-delete-alert     azurerm_monitor_activity_log_alert     verified ✅ (fix confirmed via HCP run, destroyed)
+#   endpoint-protection-status-on azurerm_security_center_setting         verified ✅ (confirmed via HCP run 2026-09-25, destroyed)
+#   defender-containers-on        azurerm_security_center_subscription_pricing verified ✅ (confirmed via HCP run 2026-09-25, destroyed)
+#   defender-sql-databases-on     azurerm_security_center_subscription_pricing verified ✅ (confirmed via HCP run 2026-09-25, destroyed)
+#   defender-sql-servers-on-machines-on azurerm_security_center_subscription_pricing verified ✅ (confirmed via HCP run 2026-09-25, destroyed)
+#   defender-keyvault-on          azurerm_security_center_subscription_pricing verified ✅ (confirmed via HCP run 2026-09-25, destroyed)
+#   defender-vm-os-updates        azurerm_security_center_subscription_pricing verified ✅ (confirmed via HCP run 2026-09-25, destroyed)
+#   firewall-rule-create-update-alert azurerm_monitor_activity_log_alert    RE-VERIFYING (policy rewritten post-verification,
+#                                                                          commit 5e4955f — re-running against new logic)
+#   firewall-rule-delete-alert     azurerm_monitor_activity_log_alert     RE-VERIFYING (policy rewritten post-verification,
+#                                                                          commit 392a684 — re-running against new logic)
 #   bastion-host-exists            azurerm_bastion_host                   verified ✅ (local tfpolicy test only — real Bastion Host
 #                                                                          costs ~$0.19/hr; not applied in HCP per user decision)
 
@@ -801,7 +809,7 @@ resource "azurerm_resource_group" "rg" {
 # }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ACTIVE -- Security Center / Defender resources (Phase 2 CIS controls, remaining 6)
+# COMMENTED OUT -- Security Center / Defender resources (verified via HCP run 2026-09-25, all 6 PASSED, destroyed)
 # Policies: endpoint-protection-status-on, defender-containers-on,
 #           defender-sql-databases-on, defender-sql-servers-on-machines-on,
 #           defender-keyvault-on, defender-vm-os-updates
@@ -813,103 +821,107 @@ resource "azurerm_resource_group" "rg" {
 
 # defender-vm-os-updates (8.1.10): PASS — VirtualMachines plan set to Standard.
 # Confirmed 0 VMs exist in this subscription, so no per-VM-hour billing while active.
-resource "azurerm_security_center_subscription_pricing" "vm_standard" {
-  tier          = "Standard"
-  resource_type = "VirtualMachines"
-}
+# resource "azurerm_security_center_subscription_pricing" "vm_standard" {
+#   tier          = "Standard"
+#   resource_type = "VirtualMachines"
+# }
 
 # defender-sql-databases-on (8.1.7.3): PASS — SqlServers plan set to Standard.
-resource "azurerm_security_center_subscription_pricing" "sql_servers_standard" {
-  tier          = "Standard"
-  resource_type = "SqlServers"
-}
+# resource "azurerm_security_center_subscription_pricing" "sql_servers_standard" {
+#   tier          = "Standard"
+#   resource_type = "SqlServers"
+# }
 
 # defender-sql-servers-on-machines-on (8.1.7.4): PASS — SqlServerVirtualMachines plan set to Standard.
-resource "azurerm_security_center_subscription_pricing" "sql_vm_standard" {
-  tier          = "Standard"
-  resource_type = "SqlServerVirtualMachines"
-}
+# resource "azurerm_security_center_subscription_pricing" "sql_vm_standard" {
+#   tier          = "Standard"
+#   resource_type = "SqlServerVirtualMachines"
+# }
 
 # defender-keyvault-on (8.1.8.1): PASS — KeyVaults plan set to Standard.
-resource "azurerm_security_center_subscription_pricing" "keyvaults_standard" {
-  tier          = "Standard"
-  resource_type = "KeyVaults"
-}
+# resource "azurerm_security_center_subscription_pricing" "keyvaults_standard" {
+#   tier          = "Standard"
+#   resource_type = "KeyVaults"
+# }
 
 # defender-containers-on (8.1.4.1): PASS — Containers plan set to Standard with all
 # 4 required extensions present (ContainerRegistriesVulnerabilityAssessments,
 # AgentlessDiscoveryForKubernetes, AgentlessVmScanning, ContainerSensor).
-resource "azurerm_security_center_subscription_pricing" "containers_standard" {
-  tier          = "Standard"
-  resource_type = "Containers"
+# resource "azurerm_security_center_subscription_pricing" "containers_standard" {
+#   tier          = "Standard"
+#   resource_type = "Containers"
 
-  extension {
-    name = "ContainerRegistriesVulnerabilityAssessments"
-  }
-  extension {
-    name = "AgentlessDiscoveryForKubernetes"
-  }
-  extension {
-    name = "AgentlessVmScanning"
-  }
-  extension {
-    name = "ContainerSensor"
-  }
-}
+#   extension {
+#     name = "ContainerRegistriesVulnerabilityAssessments"
+#   }
+#   extension {
+#     name = "AgentlessDiscoveryForKubernetes"
+#   }
+#   extension {
+#     name = "AgentlessVmScanning"
+#   }
+#   extension {
+#     name = "ContainerSensor"
+#   }
+# }
 
 # endpoint-protection-status-on (8.1.3.3): PASS — WDATP setting enabled=true.
-resource "azurerm_security_center_setting" "wdatp_enabled" {
-  setting_name = "WDATP"
-  enabled      = true
+# resource "azurerm_security_center_setting" "wdatp_enabled" {
+#   setting_name = "WDATP"
+#   enabled      = true
+# }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ACTIVE (RE-VERIFICATION) -- SQL Server Firewall Rule activity log alert resources
+# Policies: firewall-rule-create-update-alert (6.1.2.7), firewall-rule-delete-alert (6.1.2.8)
+# NOTE: both policies were REWRITTEN post-original-verification (existence-check
+# refactor, commits 5e4955f / 392a684) — the new logic was only confirmed to
+# correctly FAIL (advisory) with no qualifying alert; this re-run confirms it
+# also correctly PASSES when a qualifying alert exists.
+# ─────────────────────────────────────────────────────────────────────────────
+
+data "azurerm_subscription" "current" {}
+
+resource "azurerm_monitor_action_group" "sql_fw_notify" {
+  name                = "sql-fw-notify-ag"
+  resource_group_name = azurerm_resource_group.rg.name
+  short_name          = "sqlfwnotif"
 }
 
-# # ─────────────────────────────────────────────────────────────────────────────
-# COMMENTED OUT -- SQL Server Firewall Rule activity log alert resources (verified via HCP run, destroyed)
-# # Policies: firewall-rule-create-update-alert, firewall-rule-delete-alert
-# # ─────────────────────────────────────────────────────────────────────────────
-# 
-# data "azurerm_subscription" "current" {}
-# 
-# resource "azurerm_monitor_action_group" "sql_fw_notify" {
-#   name                = "sql-fw-notify-ag"
-#   resource_group_name = azurerm_resource_group.rg.name
-#   short_name          = "sqlfwnotif"
-# }
-# 
-# # firewall-rule-create-update-alert: PASS — enabled, category=Administrative,
-# # operation_name=Microsoft.Sql/servers/firewallRules/write, action group assigned
-# resource "azurerm_monitor_activity_log_alert" "sql_fw_create_update_pass" {
-#   name                = "sql-fw-create-update-alert-pass"
-#   resource_group_name = azurerm_resource_group.rg.name
-#   location            = "global"
-#   scopes              = [data.azurerm_subscription.current.id]
-#   enabled             = true
-# 
-#   criteria {
-#     category       = "Administrative"
-#     operation_name = "Microsoft.Sql/servers/firewallRules/write"
-#   }
-# 
-#   action {
-#     action_group_id = azurerm_monitor_action_group.sql_fw_notify.id
-#   }
-# }
-# 
-# # firewall-rule-delete-alert: PASS — enabled, category=Administrative,
-# # operation_name=Microsoft.Sql/servers/firewallRules/delete, action group assigned
-# resource "azurerm_monitor_activity_log_alert" "sql_fw_delete_pass" {
-#   name                = "sql-fw-delete-alert-pass"
-#   resource_group_name = azurerm_resource_group.rg.name
-#   location            = "global"
-#   scopes              = [data.azurerm_subscription.current.id]
-#   enabled             = true
-# 
-#   criteria {
-#     category       = "Administrative"
-#     operation_name = "Microsoft.Sql/servers/firewallRules/delete"
-#   }
-# 
-#   action {
-#     action_group_id = azurerm_monitor_action_group.sql_fw_notify.id
-#   }
-# }
+# firewall-rule-create-update-alert: PASS — enabled, category=Administrative,
+# operation_name=Microsoft.Sql/servers/firewallRules/write, action group assigned
+resource "azurerm_monitor_activity_log_alert" "sql_fw_create_update_pass" {
+  name                = "sql-fw-create-update-alert-pass"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = "global"
+  scopes              = [data.azurerm_subscription.current.id]
+  enabled             = true
+
+  criteria {
+    category       = "Administrative"
+    operation_name = "Microsoft.Sql/servers/firewallRules/write"
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.sql_fw_notify.id
+  }
+}
+
+# firewall-rule-delete-alert: PASS — enabled, category=Administrative,
+# operation_name=Microsoft.Sql/servers/firewallRules/delete, action group assigned
+resource "azurerm_monitor_activity_log_alert" "sql_fw_delete_pass" {
+  name                = "sql-fw-delete-alert-pass"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = "global"
+  scopes              = [data.azurerm_subscription.current.id]
+  enabled             = true
+
+  criteria {
+    category       = "Administrative"
+    operation_name = "Microsoft.Sql/servers/firewallRules/delete"
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.sql_fw_notify.id
+  }
+}
