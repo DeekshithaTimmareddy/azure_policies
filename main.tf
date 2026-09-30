@@ -44,6 +44,13 @@
 #                                                                          against rewritten logic, commit 392a684, destroyed)
 #   bastion-host-exists            azurerm_bastion_host                   verified ✅ (local tfpolicy test only — real Bastion Host
 #                                                                          costs ~$0.19/hr; not applied in HCP per user decision)
+#   databricks-diagnostic-logging-enabled, databricks-no-public-ip-enabled,
+#   databricks-private-endpoints-used, databricks-public-network-access-disabled,
+#   databricks-subnet-nsg-configured, databricks-vnet-injection
+#                                  azurerm_databricks_workspace            HCP apply/destroy test
+#   defender-apis-on, defender-app-services-on, defender-cosmosdb-on,
+#   defender-open-source-relational-databases-on
+#                                  azurerm_security_center_subscription_pricing HCP apply/destroy test
 
 terraform {
   required_version = ">= 1.9.0"
@@ -308,6 +315,173 @@ variable "resource_group_name" {
 resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
   location = var.location
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Databricks policies — one Premium workspace exercises all six policies.
+# ─────────────────────────────────────────────────────────────────────────────
+
+resource "azurerm_virtual_network" "databricks_test" {
+  name                = "policytest10-vnet"
+  address_space       = ["10.80.0.0/16"]
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_network_security_group" "databricks_public" {
+  name                = "policytest10-dbx-public-nsg"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  security_rule {
+    name                       = "deny-internet-inbound"
+    priority                   = 4096
+    direction                  = "Inbound"
+    access                     = "Deny"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "Internet"
+    destination_address_prefix = "*"
+  }
+}
+
+resource "azurerm_network_security_group" "databricks_private" {
+  name                = "policytest10-dbx-private-nsg"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+
+  security_rule {
+    name                       = "deny-internet-inbound"
+    priority                   = 4096
+    direction                  = "Inbound"
+    access                     = "Deny"
+    protocol                   = "*"
+    source_port_range          = "*"
+    destination_port_range     = "*"
+    source_address_prefix      = "Internet"
+    destination_address_prefix = "*"
+  }
+}
+
+resource "azurerm_subnet" "databricks_public" {
+  name                 = "policytest10-dbx-public"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.databricks_test.name
+  address_prefixes     = ["10.80.1.0/24"]
+
+  delegation {
+    name = "databricks"
+
+    service_delegation {
+      name    = "Microsoft.Databricks/workspaces"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+    }
+  }
+}
+
+resource "azurerm_subnet" "databricks_private" {
+  name                 = "policytest10-dbx-private"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.databricks_test.name
+  address_prefixes     = ["10.80.2.0/24"]
+
+  delegation {
+    name = "databricks"
+
+    service_delegation {
+      name    = "Microsoft.Databricks/workspaces"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/join/action"]
+    }
+  }
+}
+
+resource "azurerm_subnet" "databricks_private_endpoint" {
+  name                              = "policytest10-private-endpoint"
+  resource_group_name               = azurerm_resource_group.rg.name
+  virtual_network_name              = azurerm_virtual_network.databricks_test.name
+  address_prefixes                  = ["10.80.3.0/24"]
+  private_endpoint_network_policies = "Disabled"
+}
+
+resource "azurerm_subnet_network_security_group_association" "databricks_public" {
+  subnet_id                 = azurerm_subnet.databricks_public.id
+  network_security_group_id = azurerm_network_security_group.databricks_public.id
+}
+
+resource "azurerm_subnet_network_security_group_association" "databricks_private" {
+  subnet_id                 = azurerm_subnet.databricks_private.id
+  network_security_group_id = azurerm_network_security_group.databricks_private.id
+}
+
+resource "azurerm_databricks_workspace" "policy_test" {
+  name                                  = "policytest10-dbx"
+  resource_group_name                   = azurerm_resource_group.rg.name
+  location                              = azurerm_resource_group.rg.location
+  sku                                   = "premium"
+  managed_resource_group_name           = "policytest10-dbx-managed-rg"
+  public_network_access_enabled         = false
+  network_security_group_rules_required = "NoAzureDatabricksRules"
+
+  custom_parameters {
+    virtual_network_id                                   = azurerm_virtual_network.databricks_test.id
+    public_subnet_name                                   = azurerm_subnet.databricks_public.name
+    public_subnet_network_security_group_association_id  = azurerm_subnet_network_security_group_association.databricks_public.id
+    private_subnet_name                                  = azurerm_subnet.databricks_private.name
+    private_subnet_network_security_group_association_id = azurerm_subnet_network_security_group_association.databricks_private.id
+    no_public_ip                                         = true
+  }
+}
+
+resource "azurerm_private_endpoint" "databricks_ui_api" {
+  name                = "policytest10-dbx-ui-pe"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  subnet_id           = azurerm_subnet.databricks_private_endpoint.id
+
+  private_service_connection {
+    name                           = "policytest10-dbx-ui-connection"
+    private_connection_resource_id = azurerm_databricks_workspace.policy_test.id
+    is_manual_connection           = false
+    subresource_names              = ["databricks_ui_api"]
+  }
+}
+
+resource "azurerm_log_analytics_workspace" "databricks_test" {
+  name                = "policytest10-dbx-law"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+resource "azurerm_monitor_diagnostic_setting" "databricks_test" {
+  name                       = "policytest10-dbx-diagnostics"
+  target_resource_id         = azurerm_databricks_workspace.policy_test.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.databricks_test.id
+
+  enabled_log {
+    category_group = "allLogs"
+  }
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Defender policies — subscription-wide Standard plans; destroy after testing.
+# ─────────────────────────────────────────────────────────────────────────────
+
+resource "azurerm_security_center_subscription_pricing" "app_services_test" {
+  resource_type = "AppServices"
+  tier          = "Standard"
+}
+
+resource "azurerm_security_center_subscription_pricing" "cosmosdb_test" {
+  resource_type = "CosmosDbs"
+  tier          = "Standard"
+}
+
+resource "azurerm_security_center_subscription_pricing" "open_source_databases_test" {
+  resource_type = "OpenSourceRelationalDatabases"
+  tier          = "Standard"
 }
 
 # # COMPLIANT NSG — no Internet-facing HTTP, RDP, or unrestricted UDP
