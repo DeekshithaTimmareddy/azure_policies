@@ -383,7 +383,15 @@ resource "azurerm_monitor_diagnostic_setting" "phase3_subscription" {
   }
 }
 
+variable "enable_phase3_iam_tests" {
+  description = "Enable only when the HCP identity is authorized to create and remove test roles and assignments."
+  type        = bool
+  default     = false
+}
+
 resource "azurerm_role_definition" "phase3_read_only" {
+  count = var.enable_phase3_iam_tests ? 1 : 0
+
   name        = "Phase 3 Policy Test Read Only"
   scope       = azurerm_resource_group.rg.id
   description = "Temporary resource-group-scoped role for policy testing."
@@ -396,6 +404,8 @@ resource "azurerm_role_definition" "phase3_read_only" {
 }
 
 resource "azurerm_role_assignment" "phase3_reader" {
+  count = var.enable_phase3_iam_tests ? 1 : 0
+
   scope                = azurerm_resource_group.rg.id
   role_definition_name = "Reader"
   principal_id         = data.azurerm_client_config.phase3.object_id
