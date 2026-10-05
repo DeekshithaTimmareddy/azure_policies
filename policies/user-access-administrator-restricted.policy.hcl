@@ -22,7 +22,8 @@ resource_policy "azurerm_role_assignment" "user_access_administrator_restricted"
   locals {
     role_name = core::try(core::lower(core::trimspace(attrs.role_definition_name)), "")
     role_id   = core::try(core::lower(core::trim(attrs.role_definition_id, "/ ")), "")
-    is_uaa    = local.role_name == "user access administrator" || core::endswith(local.role_id, "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9")
+    # An explicit ID is authoritative; the provider may leave the unused name unknown.
+    is_uaa = local.role_id != "" ? core::endswith(local.role_id, "18d7d88d-d35e-4fb5-a5c3-7773c20a72d9") : local.role_name == "user access administrator"
   }
 
   enforce {

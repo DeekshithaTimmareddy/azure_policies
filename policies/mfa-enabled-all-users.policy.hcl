@@ -6,7 +6,7 @@ policy {
   required_providers {
     azuread = {
       source  = "hashicorp/azuread"
-      version = ">= 3.0.0, < 4.0.0"
+      version = ">= 3.9.0, < 4.0.0"
     }
   }
 }
@@ -62,7 +62,12 @@ resource_policy "azuread_conditional_access_policy" "mfa_required_all_users" {
   enforcement_level = input.mfa-enabled-all-users-enforcement-level
 
   enforce {
-    condition     = local.is_enabled && local.no_grant_bypass && local.no_user_exclusions && local.all_apps && local.all_client_apps && local.no_narrowing
+    condition     = local.is_enabled
+    error_message = "A Conditional Access policy that requires MFA for All users must be enabled, not disabled or report-only."
+  }
+
+  enforce {
+    condition     = local.no_grant_bypass && local.no_user_exclusions && local.all_apps && local.all_client_apps && local.no_narrowing
     error_message = "A Conditional Access policy that requires MFA for All users must be enabled, apply to All cloud apps with no exclusions or application filter, use client app types 'all', have no user/group/role/guest exclusions, no location/platform/device/risk/auth-flow conditions, and must not use an OR grant that lets another control, terms of use or a custom factor replace MFA."
   }
 }
