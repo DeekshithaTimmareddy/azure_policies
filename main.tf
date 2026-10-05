@@ -44,6 +44,13 @@
 #                                                                          against rewritten logic, commit 392a684, destroyed)
 #   bastion-host-exists            azurerm_bastion_host                   verified ✅ (local tfpolicy test only — real Bastion Host
 #                                                                          costs ~$0.19/hr; not applied in HCP per user decision)
+#   databricks-diagnostic-logging-enabled, databricks-no-public-ip-enabled,
+#   databricks-private-endpoints-used, databricks-public-network-access-disabled,
+#   databricks-subnet-nsg-configured, databricks-vnet-injection
+#                                  azurerm_databricks_workspace            HCP apply/destroy test
+#   defender-apis-on, defender-app-services-on, defender-cosmosdb-on,
+#   defender-open-source-relational-databases-on
+#                                  azurerm_security_center_subscription_pricing HCP apply/destroy test
 
 terraform {
   required_version = ">= 1.9.0"
@@ -66,7 +73,7 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id = "b4c6e83c-e900-42e9-ae40-f5d42244f50f"
+  subscription_id = "ee7a8e44-7d60-4e1d-8ded-f2bd49677d2c"
   tenant_id       = "237fbc04-c52a-458b-af97-eaf7157c0cd4"
 }
 
@@ -302,12 +309,96 @@ variable "location" {
 variable "resource_group_name" {
   description = "Resource group that holds all test resources."
   type        = string
-  default     = "policy-testing-rg"
+  default     = "policy-testing-phase3-rg"
 }
 
 resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
   location = var.location
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Phase 3: monitoring policies and safe IAM cases.
+# Tenant-wide MFA/security defaults require separate, isolated-tenant testing.
+# ─────────────────────────────────────────────────────────────────────────────
+
+data "azurerm_subscription" "phase3" {}
+
+data "azurerm_client_config" "phase3" {}
+
+locals {
+  phase3_alert_operations = {
+    create-policy-assignment-alert        = "Microsoft.Authorization/policyAssignments/write"
+    delete-policy-assignment-alert        = "Microsoft.Authorization/policyAssignments/delete"
+    create-update-security-solution-alert = "Microsoft.Security/securitySolutions/write"
+    delete-security-solution-alert        = "Microsoft.Security/securitySolutions/delete"
+  }
+}
+
+resource "azurerm_storage_account" "phase3_logs" {
+  name                            = "poltestee7a8e447d60"
+  location                        = azurerm_resource_group.rg.location
+  resource_group_name             = azurerm_resource_group.rg.name
+  account_tier                    = "Standard"
+  account_replication_type        = "LRS"
+  min_tls_version                 = "TLS1_2"
+  allow_nested_items_to_be_public = false
+}
+
+resource "azurerm_monitor_action_group" "phase3" {
+  name                = "phase3-policy-test-actions"
+  resource_group_name = azurerm_resource_group.rg.name
+  short_name          = "poltest"
+}
+
+resource "azurerm_monitor_activity_log_alert" "phase3" {
+  for_each = local.phase3_alert_operations
+
+  name                = "phase3-${each.key}"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = "global"
+  scopes              = [data.azurerm_subscription.phase3.id]
+  enabled             = true
+
+  criteria {
+    category       = "Administrative"
+    operation_name = each.value
+  }
+
+  action {
+    action_group_id = azurerm_monitor_action_group.phase3.id
+  }
+}
+
+resource "azurerm_monitor_diagnostic_setting" "phase3_subscription" {
+  name               = "phase3-policy-test-activity-logs"
+  target_resource_id = data.azurerm_subscription.phase3.id
+  storage_account_id = azurerm_storage_account.phase3_logs.id
+
+  dynamic "enabled_log" {
+    for_each = toset(["Administrative", "Alert", "Policy", "Security"])
+    content {
+      category = enabled_log.value
+    }
+  }
+}
+
+resource "azurerm_role_definition" "phase3_read_only" {
+  name        = "Phase 3 Policy Test Read Only"
+  scope       = azurerm_resource_group.rg.id
+  description = "Temporary resource-group-scoped role for policy testing."
+
+  permissions {
+    actions = ["Microsoft.Resources/subscriptions/resourceGroups/read"]
+  }
+
+  assignable_scopes = [azurerm_resource_group.rg.id]
+}
+
+resource "azurerm_role_assignment" "phase3_reader" {
+  scope                = azurerm_resource_group.rg.id
+  role_definition_name = "Reader"
+  principal_id         = data.azurerm_client_config.phase3.object_id
 }
 
 # # COMPLIANT NSG — no Internet-facing HTTP, RDP, or unrestricted UDP
