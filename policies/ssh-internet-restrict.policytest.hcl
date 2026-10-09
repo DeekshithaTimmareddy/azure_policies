@@ -637,19 +637,19 @@ resource "azurerm_network_security_group" "fail_nsg_range_upper_boundary" {
   }
 }
 
-resource "azurerm_network_security_group" "pass_nsg_unknown_rules" {
+resource "azurerm_network_security_group" "pass_nsg_null_or_omitted_rules" {
   attrs = {
     security_rule = null
   }
 }
 
-resource "azurerm_network_security_group" "pass_nsg_unknown_port" {
+resource "azurerm_network_security_group" "pass_nsg_null_or_omitted_port" {
   attrs = {
     security_rule = [{ access = "Allow", direction = "Inbound", protocol = "Tcp", destination_port_range = null, source_address_prefix = "Internet" }]
   }
 }
 
-resource "azurerm_network_security_group" "pass_nsg_unknown_source" {
+resource "azurerm_network_security_group" "pass_nsg_null_or_omitted_source" {
   attrs = {
     security_rule = [{ access = "Allow", direction = "Inbound", protocol = "Tcp", destination_port_range = "22", source_address_prefix = null }]
   }
@@ -786,7 +786,7 @@ resource "azurerm_network_security_rule" "pass_rule_range_above_ssh" {
   }
 }
 
-resource "azurerm_network_security_rule" "pass_rule_unknown_ports" {
+resource "azurerm_network_security_rule" "pass_rule_null_or_omitted_ports" {
   attrs = {
     access = "Allow"
     direction = "Inbound"
@@ -797,7 +797,7 @@ resource "azurerm_network_security_rule" "pass_rule_unknown_ports" {
   }
 }
 
-resource "azurerm_network_security_rule" "pass_rule_unknown_sources" {
+resource "azurerm_network_security_rule" "pass_rule_null_or_omitted_sources" {
   attrs = {
     access = "Allow"
     direction = "Inbound"

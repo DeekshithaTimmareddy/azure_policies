@@ -27,7 +27,7 @@ resource "azurerm_application_insights" "pass_workspace_new_in_plan" {
   }
 }
 
-resource "azurerm_application_insights" "pass_workspace_null_unknown" {
+resource "azurerm_application_insights" "pass_workspace_null_null_or_omitted" {
   attrs = {
     application_type = "web"
     workspace_id = null

@@ -4,7 +4,34 @@ policytest {
   targets = ["service-health-alert.policy.hcl"]
 }
 
-resource "azurerm_monitor_activity_log_alert" "pass_real_plan_unknown_action_group" {
+resource "azurerm_monitor_activity_log_alert" "fail_empty_scopes" {
+  expect_failure = true
+  attrs = {
+    scopes = []
+    criteria = [{ category = "ServiceHealth" }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
+  }
+}
+
+resource "azurerm_monitor_activity_log_alert" "fail_scopes_omitted" {
+  expect_failure = true
+  attrs = {
+    criteria = [{ category = "ServiceHealth" }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
+  }
+}
+
+resource "azurerm_monitor_activity_log_alert" "fail_null_action_group_id" {
+  expect_failure = true
+  attrs = {
+    scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
+    criteria = [{ category = "ServiceHealth" }]
+    action = [{ action_group_id = null }]
+  }
+}
+
+resource "azurerm_monitor_activity_log_alert" "fail_action_group_id_omitted" {
+  expect_failure = true
   attrs = {
     enabled = true
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
@@ -62,15 +89,16 @@ resource "azurerm_monitor_activity_log_alert" "pass_category_normalized" {
   attrs = {
     scopes = ["/SUBSCRIPTIONS/00000000-0000-0000-0000-000000000000/"]
     criteria = [{ category = " serviceHEALTH " }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
-resource "azurerm_monitor_activity_log_alert" "pass_unknown_scopes" {
+resource "azurerm_monitor_activity_log_alert" "fail_null_scopes" {
+  expect_failure = true
   attrs = {
     scopes = null
     criteria = [{ category = "ServiceHealth" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -93,7 +121,7 @@ resource "azurerm_monitor_activity_log_alert" "pass_empty_service_health_block" 
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{}] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -101,7 +129,7 @@ resource "azurerm_monitor_activity_log_alert" "pass_empty_service_health_collect
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ events = [], services = [], locations = [] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -109,7 +137,7 @@ resource "azurerm_monitor_activity_log_alert" "pass_null_service_health_collecti
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ events = null, services = null, locations = null }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -117,7 +145,7 @@ resource "azurerm_monitor_activity_log_alert" "pass_all_explicit_events" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ events = ["Incident", "Maintenance", "Informational", "ActionRequired", "Security"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -125,7 +153,7 @@ resource "azurerm_monitor_activity_log_alert" "pass_events_normalized_and_reorde
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ events = [" SECURITY ", "ActionRequired", "informational", "maintenance", "INCIDENT"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -133,7 +161,7 @@ resource "azurerm_monitor_activity_log_alert" "pass_region_selection" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ locations = ["East US"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -141,7 +169,7 @@ resource "azurerm_monitor_activity_log_alert" "pass_blank_and_empty_generic_filt
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", caller = " ", operation_name = "", levels = [], statuses = [], resource_types = [] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -175,7 +203,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_disabled" {
     enabled = false
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -184,7 +212,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_group_scope" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts"]
     criteria = [{ category = "ServiceHealth" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -193,16 +221,16 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_scope" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Storage/storageAccounts/example"]
     criteria = [{ category = "ServiceHealth" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
-resource "azurerm_monitor_activity_log_alert" "fail_mixed_unknown_and_resource_group_scope" {
+resource "azurerm_monitor_activity_log_alert" "fail_mixed_null_or_omitted_and_resource_group_scope" {
   expect_failure = true
   attrs = {
     scopes = [null, "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts"]
     criteria = [{ category = "ServiceHealth" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -237,7 +265,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_selected_service" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ services = ["Virtual Machines"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -246,7 +274,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_literal_all_service" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ services = ["All"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -255,7 +283,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_incident_only_remediation" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ events = ["Incident"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -264,7 +292,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_missing_incident" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ events = ["Maintenance", "Informational", "ActionRequired", "Security"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -273,7 +301,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_missing_maintenance" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ events = ["Incident", "Informational", "ActionRequired", "Security"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -282,7 +310,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_missing_informational" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ events = ["Incident", "Maintenance", "ActionRequired", "Security"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -291,7 +319,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_missing_action_required" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ events = ["Incident", "Maintenance", "Informational", "Security"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -300,7 +328,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_missing_security" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", service_health = [{ events = ["Incident", "Maintenance", "Informational", "ActionRequired"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -309,7 +337,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_operation_name" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", operation_name = "Microsoft.Network/publicIPAddresses/delete" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -318,7 +346,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_caller" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", caller = "operator@example.com" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -327,7 +355,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_level" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", level = "Informational" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -336,7 +364,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_levels" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", levels = ["Informational"] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -345,7 +373,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_status" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", status = "Succeeded" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -354,7 +382,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_statuses" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", statuses = ["Succeeded"] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -363,7 +391,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_sub_status" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", sub_status = "OK" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -372,7 +400,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_sub_statuses" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", sub_statuses = ["OK"] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -381,7 +409,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_group" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", resource_group = "rg-alerts" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -390,7 +418,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_groups" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", resource_groups = ["rg-alerts"] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -399,7 +427,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_id" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Storage/storageAccounts/example" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -408,7 +436,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_ids" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", resource_ids = ["/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Storage/storageAccounts/example"] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -417,7 +445,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_provider" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", resource_provider = "Microsoft.Storage" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -426,7 +454,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_providers" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", resource_providers = ["Microsoft.Storage"] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -435,7 +463,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_type" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", resource_type = "Microsoft.Storage/storageAccounts" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -444,7 +472,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_types" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", resource_types = ["Microsoft.Storage/storageAccounts"] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -452,7 +480,7 @@ resource "azurerm_monitor_activity_log_alert" "pass_empty_resource_health_filter
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", resource_health = [{ current = [], previous = null, reason = [] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -461,7 +489,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_recommendation_type" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", recommendation_type = "sample-recommendation" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -470,7 +498,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_recommendation_category" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", recommendation_category = "Security" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -479,7 +507,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_recommendation_impact" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", recommendation_impact = "High" }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -488,7 +516,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_health_current" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", resource_health = [{ current = ["Degraded"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -497,7 +525,7 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_health_previous" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", resource_health = [{ previous = ["Available"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }
 
@@ -506,6 +534,6 @@ resource "azurerm_monitor_activity_log_alert" "fail_resource_health_reason" {
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{ category = "ServiceHealth", resource_health = [{ reason = ["PlatformInitiated"] }] }]
-    action = [{ action_group_id = null }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
   }
 }

@@ -117,14 +117,14 @@ resource "azurerm_network_watcher_flow_log" "pass_disabled_log_retention_90" {
   }
 }
 
-resource "azurerm_network_watcher_flow_log" "pass_unknown_days" {
+resource "azurerm_network_watcher_flow_log" "pass_null_or_omitted_days" {
   attrs = {
     target_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-test"
     retention_policy = [{ enabled = true, days = null }]
   }
 }
 
-resource "azurerm_network_watcher_flow_log" "pass_unknown_retention_block" {
+resource "azurerm_network_watcher_flow_log" "pass_null_or_omitted_retention_block" {
   attrs = {
     target_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-net/providers/Microsoft.Network/virtualNetworks/vnet-test"
     retention_policy = null
@@ -169,14 +169,14 @@ resource "azurerm_network_watcher_flow_log" "pass_nic_out_of_scope" {
   }
 }
 
-resource "azurerm_network_watcher_flow_log" "pass_unknown_target" {
+resource "azurerm_network_watcher_flow_log" "pass_null_or_omitted_target" {
   attrs = {
     target_resource_id = null
     retention_policy = [{ enabled = true, days = 1 }]
   }
 }
 
-resource "azurerm_network_watcher_flow_log" "pass_real_plan_unknown_target_and_storage" {
+resource "azurerm_network_watcher_flow_log" "pass_real_plan_null_or_omitted_target_and_storage" {
   attrs = {
     enabled = true
     retention_policy = [{ enabled = true, days = 90 }]

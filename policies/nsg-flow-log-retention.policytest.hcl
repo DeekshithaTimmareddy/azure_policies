@@ -108,7 +108,7 @@ resource "azurerm_network_watcher_flow_log" "pass_indefinite_retention_disabled"
   }
 }
 
-resource "azurerm_network_watcher_flow_log" "pass_unknown_days" {
+resource "azurerm_network_watcher_flow_log" "pass_null_or_omitted_days" {
   attrs = {
     target_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-net/providers/Microsoft.Network/networkSecurityGroups/nsg-test"
     enabled = true
@@ -116,7 +116,7 @@ resource "azurerm_network_watcher_flow_log" "pass_unknown_days" {
   }
 }
 
-resource "azurerm_network_watcher_flow_log" "pass_unknown_retention_block" {
+resource "azurerm_network_watcher_flow_log" "pass_null_or_omitted_retention_block" {
   attrs = {
     target_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-net/providers/Microsoft.Network/networkSecurityGroups/nsg-test"
     enabled = true
@@ -124,7 +124,7 @@ resource "azurerm_network_watcher_flow_log" "pass_unknown_retention_block" {
   }
 }
 
-resource "azurerm_network_watcher_flow_log" "pass_unknown_enabled" {
+resource "azurerm_network_watcher_flow_log" "pass_null_or_omitted_enabled" {
   attrs = {
     target_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-net/providers/Microsoft.Network/networkSecurityGroups/nsg-test"
     enabled = null
@@ -167,7 +167,7 @@ resource "azurerm_network_watcher_flow_log" "fail_short_days_retention_disabled"
   }
 }
 
-resource "azurerm_network_watcher_flow_log" "fail_disabled_unknown_days" {
+resource "azurerm_network_watcher_flow_log" "fail_disabled_null_or_omitted_days" {
   expect_failure = true
   attrs = {
     target_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-net/providers/Microsoft.Network/networkSecurityGroups/nsg-test"
@@ -200,7 +200,7 @@ resource "azurerm_network_watcher_flow_log" "pass_nic_out_of_scope" {
   }
 }
 
-resource "azurerm_network_watcher_flow_log" "pass_unknown_target_deferred" {
+resource "azurerm_network_watcher_flow_log" "pass_null_or_omitted_target_deferred" {
   attrs = {
     target_resource_id = null
     enabled = false

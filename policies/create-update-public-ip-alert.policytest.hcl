@@ -4,9 +4,27 @@ policytest {
   targets = ["create-update-public-ip-alert.policy.hcl"]
 }
 
-resource "azurerm_monitor_activity_log_alert" "pass_real_plan_shape_action_group_unknown" {
+resource "azurerm_monitor_activity_log_alert" "fail_empty_scopes" {
+  expect_failure = true
   attrs = {
-    name                = "pass-real-plan-shape-action-group-unknown"
+    scopes = []
+    criteria = [{ category = "Administrative", operation_name = "Microsoft.Network/publicIPAddresses/write" }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
+  }
+}
+
+resource "azurerm_monitor_activity_log_alert" "fail_scopes_omitted" {
+  expect_failure = true
+  attrs = {
+    criteria = [{ category = "Administrative", operation_name = "Microsoft.Network/publicIPAddresses/write" }]
+    action = [{ action_group_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-alerts/providers/Microsoft.Insights/actionGroups/ag-security" }]
+  }
+}
+
+resource "azurerm_monitor_activity_log_alert" "fail_action_group_id_omitted" {
+  expect_failure = true
+  attrs = {
+    name                = "fail-action-group-id-omitted"
     resource_group_name = "rg-alerts"
     location            = "global"
     scopes              = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
@@ -227,9 +245,10 @@ resource "azurerm_monitor_activity_log_alert" "pass_subscription_scope_mixed_cas
   }
 }
 
-resource "azurerm_monitor_activity_log_alert" "pass_scopes_unknown" {
+resource "azurerm_monitor_activity_log_alert" "fail_null_scopes" {
+  expect_failure = true
   attrs = {
-    name                = "pass-scopes-unknown"
+    name                = "fail-null-scopes"
     resource_group_name = "rg-alerts"
     location            = "global"
     scopes              = null
@@ -1005,7 +1024,8 @@ resource "azurerm_monitor_activity_log_alert" "pass_operation_whitespace" {
   }
 }
 
-resource "azurerm_monitor_activity_log_alert" "pass_null_action_group_id_unknown" {
+resource "azurerm_monitor_activity_log_alert" "fail_null_action_group_id" {
+  expect_failure = true
   attrs = {
     scopes = ["/subscriptions/00000000-0000-0000-0000-000000000000"]
     criteria = [{

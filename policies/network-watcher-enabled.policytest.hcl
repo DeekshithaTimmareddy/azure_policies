@@ -123,7 +123,7 @@ resource "azurerm_virtual_network" "fail_other_subscription" {
   }
 }
 
-resource "azurerm_virtual_network" "pass_unknown_location" {
+resource "azurerm_virtual_network" "pass_null_or_omitted_location" {
   attrs = {
     location = null
   }
