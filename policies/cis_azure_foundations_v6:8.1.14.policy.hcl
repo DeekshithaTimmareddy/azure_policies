@@ -32,6 +32,10 @@ resource_policy "azapi_resource" "alert_notifications_enabled" {
     state             = local.state_raw == null ? "" : core::lower(local.state_raw)
     severity_raw      = core::try(attrs.body.properties.alertNotifications.minimalSeverity, null)
     severity          = local.severity_raw == null ? "" : core::lower(local.severity_raw)
+    sources_raw       = core::try(attrs.body.properties.notificationsSources, null)
+    sources           = local.sources_raw == null ? [] : local.sources_raw
+    alert_sources     = [for source in local.sources : source if core::try(core::lower(source.sourceType), "") == "alert"]
+    invalid_levels    = [for source in local.alert_sources : source if !core::contains(["high", "medium", "low"], core::try(core::lower(source.minimalSeverity), ""))]
   }
 
   filter = local.api_resource == "microsoft.security/securitycontacts" && local.resource_name == "default"
@@ -39,7 +43,11 @@ resource_policy "azapi_resource" "alert_notifications_enabled" {
   enforcement_level = "advisory"
 
   enforce {
-    condition     = local.api_version == "2020-01-01-preview" && local.state == "on" && core::contains(["high", "medium", "low"], local.severity)
-    error_message = "The default Microsoft.Security/securityContacts resource must use API 2020-01-01-preview with alertNotifications.state On and minimalSeverity set to High, Medium, or Low."
+    condition = (
+      local.api_version == "2020-01-01-preview" ?
+      local.state == "on" && core::contains(["high", "medium", "low"], local.severity) :
+      local.api_version == "2023-12-01-preview" && core::length(local.alert_sources) > 0 && core::length(local.invalid_levels) == 0
+    )
+    error_message = "The default Microsoft.Security/securityContacts resource must enable alert notifications with minimalSeverity High, Medium, or Low: use alertNotifications.state On for API 2020-01-01-preview, or an Alert notificationsSources entry for API 2023-12-01-preview."
   }
 }

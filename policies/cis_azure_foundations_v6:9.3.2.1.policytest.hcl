@@ -1,3 +1,7 @@
+policytest {
+  targets = ["cis_azure_foundations_v6:9.3.2.1.policy.hcl"]
+}
+
 resource "azurerm_storage_account" "pass_sa_with_pe" {
   attrs = {
     id                       = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg1/providers/Microsoft.Storage/storageAccounts/sapass1"

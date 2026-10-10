@@ -1,3 +1,7 @@
+policytest {
+  targets = ["cis_azure_foundations_v6:9.3.1.2.policy.hcl"]
+}
+
 resource "azurerm_storage_account" "rotation_requires_live_audit" {
   expect_failure = true
   attrs = {

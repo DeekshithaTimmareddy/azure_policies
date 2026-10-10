@@ -1,3 +1,7 @@
+policytest {
+  targets = ["cis_azure_foundations_v6:9.1.2.policy.hcl"]
+}
+
 resource "azurerm_storage_account" "pass_smb311_only" {
   attrs = {
     name                     = "sa912t00"

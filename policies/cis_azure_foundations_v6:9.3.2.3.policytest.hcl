@@ -1,3 +1,7 @@
+policytest {
+  targets = ["cis_azure_foundations_v6:9.3.2.3.policy.hcl"]
+}
+
 resource "azurerm_storage_account" "pass_inline_deny" {
   attrs = {
     name = "sapassdeny01"

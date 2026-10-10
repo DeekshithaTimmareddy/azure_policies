@@ -1,3 +1,7 @@
+policytest {
+  targets = ["cis_azure_foundations_v6:9.3.1.1.policy.hcl"]
+}
+
 resource "azurerm_storage_account" "fail_reminder_not_exposed_without_sas_policy" {
   expect_failure = true
   attrs = {

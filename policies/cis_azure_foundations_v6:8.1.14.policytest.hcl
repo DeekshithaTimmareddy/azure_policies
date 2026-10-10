@@ -115,8 +115,7 @@ resource "azapi_resource" "fail_alert_notifications_missing" {
   }
 }
 
-resource "azapi_resource" "fail_unsupported_api_version" {
-  expect_failure = true
+resource "azapi_resource" "pass_current_api_alert_source" {
   attrs = {
     type = "Microsoft.Security/securityContacts@2023-12-01-preview"
     name = "default"
@@ -126,6 +125,97 @@ resource "azapi_resource" "fail_unsupported_api_version" {
           sourceType      = "Alert"
           minimalSeverity = "High"
         }]
+      }
+    }
+  }
+}
+
+resource "azapi_resource" "pass_current_api_alert_and_attack_path" {
+  attrs = {
+    type = "Microsoft.Security/securityContacts@2023-12-01-preview"
+    name = "default"
+    body = {
+      properties = {
+        notificationsSources = [
+          { sourceType = "Alert", minimalSeverity = "Medium" },
+          { sourceType = "AttackPath", minimalRiskLevel = "High" }
+        ]
+      }
+    }
+  }
+}
+
+resource "azapi_resource" "pass_current_api_low_severity" {
+  attrs = {
+    type = "Microsoft.Security/securityContacts@2023-12-01-preview"
+    name = "default"
+    body = {
+      properties = {
+        notificationsSources = [{ sourceType = "Alert", minimalSeverity = "Low" }]
+      }
+    }
+  }
+}
+
+resource "azapi_resource" "fail_current_api_missing_alert_source" {
+  expect_failure = true
+  attrs = {
+    type = "Microsoft.Security/securityContacts@2023-12-01-preview"
+    name = "default"
+    body = {
+      properties = {
+        notificationsSources = [{ sourceType = "AttackPath", minimalRiskLevel = "High" }]
+      }
+    }
+  }
+}
+
+resource "azapi_resource" "fail_current_api_missing_sources" {
+  expect_failure = true
+  attrs = {
+    type = "Microsoft.Security/securityContacts@2023-12-01-preview"
+    name = "default"
+    body = { properties = {} }
+  }
+}
+
+resource "azapi_resource" "fail_current_api_missing_severity" {
+  expect_failure = true
+  attrs = {
+    type = "Microsoft.Security/securityContacts@2023-12-01-preview"
+    name = "default"
+    body = {
+      properties = {
+        notificationsSources = [{ sourceType = "Alert" }]
+      }
+    }
+  }
+}
+
+resource "azapi_resource" "fail_current_api_invalid_duplicate_alert" {
+  expect_failure = true
+  attrs = {
+    type = "Microsoft.Security/securityContacts@2023-12-01-preview"
+    name = "default"
+    body = {
+      properties = {
+        notificationsSources = [
+          { sourceType = "Alert", minimalSeverity = "High" },
+          { sourceType = "Alert", minimalSeverity = "Informational" }
+        ]
+      }
+    }
+  }
+}
+
+resource "azapi_resource" "fail_unsupported_api_version" {
+  expect_failure = true
+  attrs = {
+    type = "Microsoft.Security/securityContacts@2017-08-01-preview"
+    name = "default"
+    body = {
+      properties = {
+        notificationsSources = [{ sourceType = "Alert", minimalSeverity = "High" }]
       }
     }
   }

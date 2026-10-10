@@ -1,3 +1,7 @@
+policytest {
+  targets = ["cis_azure_foundations_v6:9.2.2.policy.hcl"]
+}
+
 resource "azurerm_storage_account" "pass_days_7" {
   attrs = {
     name = "passdays7"
