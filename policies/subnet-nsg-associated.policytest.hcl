@@ -4,6 +4,20 @@ policytest {
   targets = ["subnet-nsg-associated.policy.hcl"]
 }
 
+resource "azurerm_subnet_network_security_group_association" "pass_unresolved_subnet_association_deferred" {
+  attrs = {
+    network_security_group_id = "/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Network/networkSecurityGroups/nsg"
+  }
+}
+
+resource "azurerm_subnet" "fail_known_subnet_with_uncorrelated_unresolved_association" {
+  expect_failure = true
+  attrs = {
+    id                        = "/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/unrelated-known"
+    network_security_group_id = null
+  }
+}
+
 resource "azurerm_subnet_network_security_group_association" "pass_association" {
   attrs = {
     subnet_id                 = "/subscriptions/sub/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/protected"

@@ -4,6 +4,32 @@ policytest {
   targets = ["waf-bot-protection-enabled.policy.hcl"]
 }
 
+resource "azurerm_web_application_firewall_policy" "pass_disabled_bot_policy_fixture" {
+  attrs = {
+    id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/disabled-bot"
+    policy_settings = [{
+      enabled = false
+    }]
+    managed_rules = [{
+      managed_rule_set = [{
+        type    = "Microsoft_BotManagerRuleSet"
+        version = "1.0"
+      }]
+    }]
+  }
+}
+
+resource "azurerm_application_gateway" "fail_disabled_policy_with_bot_rules" {
+  expect_failure = true
+  attrs = {
+    sku = [{
+      name = "WAF_v2"
+      tier = "WAF_v2"
+    }]
+    firewall_policy_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/disabled-bot"
+  }
+}
+
 resource "azurerm_application_gateway" "pass_standard_gateway_out_of_scope" {
   attrs = {
     sku = [{
@@ -72,6 +98,9 @@ resource "azurerm_application_gateway" "pass_owasp_and_bot" {
 resource "azurerm_web_application_firewall_policy" "pass_knownbadbots_enabled_policy" {
   attrs = {
     id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/knownbad-enabled"
+    policy_settings = [{
+      enabled = true
+    }]
     managed_rules = [{
       managed_rule_set = [{
         type    = "Microsoft_BotManagerRuleSet"

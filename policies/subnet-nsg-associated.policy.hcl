@@ -44,7 +44,7 @@ resource_policy "azurerm_subnet" "subnet_nsg_associated" {
     ]
     unresolved_associations = [
       for a in local.candidate_associations : a
-      if local.id == null || a.subnet_id == null
+      if local.id == null
     ]
   }
 
@@ -53,7 +53,7 @@ resource_policy "azurerm_subnet" "subnet_nsg_associated" {
     condition = (local.nsg_valid || core::length(local.matching_associations) > 0 ||
       core::length(local.unresolved_associations) > 0 ||
     (local.write_only_version == null ? false : local.write_only_version >= 1))
-    error_message = "The subnet must have an NSG association, a resolved network_security_group_id, or a configured write-only NSG assignment. Unknown association IDs require resolved-value verification."
+    error_message = "The subnet must have an exactly matching NSG association, a resolved network_security_group_id, or a configured write-only NSG assignment. An unresolved association cannot establish protection for a known subnet ID; unknown subnet IDs require resolved-value verification."
   }
 }
 
