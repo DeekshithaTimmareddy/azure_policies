@@ -11,7 +11,7 @@ Add these Terraform variables in the HCP workspace:
 | Name | Value |
 | --- | --- |
 | `project_id` | ID of a disposable GCP test project |
-| `phase` | `bootstrap` for the first run; later `test` |
+| `phase` | `bootstrap`, `metric`, or `test` |
 | `control` | One of `sql`, `ownership`, `audit`, `role`, `firewall`, `route`, `network`, or `storage` |
 
 Configure GCP authentication as a sensitive environment variable supported by the Google provider, preferably through workload identity. If using a service-account credential, use the `GOOGLE_CREDENTIALS` environment variable, store it only as sensitive in HCP, and grant only the permissions needed to create and delete these test resources. Do not commit credential files or paste credentials into chat. Required APIs must already be enabled in the disposable project; this root does not enable APIs.
@@ -19,9 +19,10 @@ Configure GCP authentication as a sensitive environment variable supported by th
 ## Run sequence
 
 1. With `phase = bootstrap`, queue a plan and review it. Apply only if it contains the Pub/Sub topic and notification channel, with no unrelated changes.
-2. Change `phase` to `test` and select one `control`. Queue a fresh plan. Do not apply until its resource changes are reviewed and the exported plan passes the matching `tfpolicy` check below.
-3. Repeat with a fresh plan for each desired control. Changing `control` reuses the metric and alert addresses, so review replacements/updates each time.
-4. When finished, queue a destroy plan, review it, and confirm it removes only resources from this test workspace. Verify the workspace state is empty afterward.
+2. Set one `control` and `phase = metric`. Queue a fresh plan and apply only after reviewing it. This creates the control's log-based metric without its alert.
+3. Wait up to 10 minutes for Cloud Monitoring to make the new metric available. Then set `phase = test`, queue a fresh plan, and ensure it proposes only the matching alert. Do not apply until the exported plan passes the matching `tfpolicy` check below.
+4. To test another control, set its `control` value and return `phase` to `metric`. Review the planned metric replacement and alert removal, apply, wait for propagation, then return to `phase = test` and check the alert plan.
+5. When finished, queue a destroy plan, review it, and confirm it removes only resources from this test workspace. Verify the workspace state is empty afterward.
 
 Never apply a plan for another project or an unexpected resource set. The test can create billable resources while they exist. HCP apply is not itself gated by `tfpolicy`; perform the plan check before approving apply.
 

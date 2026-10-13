@@ -33,10 +33,23 @@ function collectResources(module) {
 
 const resources = collectResources(root);
 const requiredTypes = ["google_logging_metric", "google_monitoring_alert_policy"];
+const policyResources = resources.filter((resource) => requiredTypes.includes(resource.type));
 for (const type of requiredTypes) {
-  if (!resources.some((resource) => resource.type === type)) {
+  if (!policyResources.some((resource) => resource.type === type)) {
     throw new Error(`Plan has no ${type}; refusing a vacuous policy check`);
   }
+}
+
+function policyAttributes(resource) {
+  const values = resource.values ?? {};
+  if (resource.type === "google_logging_metric") {
+    return { name: values.name, filter: values.filter };
+  }
+  return {
+    enabled: values.enabled,
+    notification_channels: values.notification_channels,
+    conditions: values.conditions,
+  };
 }
 
 const policyDirectory = resolve(
@@ -47,8 +60,8 @@ const testsDirectory = mkdtempSync(join(tmpdir(), "gcp-hcp-plan-"));
 const fixture = `policytest {
   targets = [${JSON.stringify(policies[control])}]
 }
-${resources.map((resource, index) => `resource ${JSON.stringify(resource.type)} ${JSON.stringify(`planned_${index}`)} {
-  attrs = ${JSON.stringify(resource.values)}
+${policyResources.map((resource, index) => `resource ${JSON.stringify(resource.type)} ${JSON.stringify(`planned_${index}`)} {
+  attrs = ${JSON.stringify(policyAttributes(resource))}
 }
 `).join("\n")}`;
 

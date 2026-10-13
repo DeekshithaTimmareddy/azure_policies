@@ -27,12 +27,12 @@ variable "control" {
 
 variable "phase" {
   type        = string
-  description = "Use bootstrap first; switch to test only after applying the notification channel."
+  description = "Use bootstrap, metric, then test so the log metric can propagate before its alert is created."
   default     = "bootstrap"
 
   validation {
-    condition     = contains(["bootstrap", "test"], var.phase)
-    error_message = "Choose bootstrap or test."
+    condition     = contains(["bootstrap", "metric", "test"], var.phase)
+    error_message = "Choose bootstrap, metric, or test."
   }
 }
 
@@ -68,7 +68,7 @@ resource "google_monitoring_notification_channel" "local_test" {
 }
 
 resource "google_logging_metric" "local_test" {
-  count  = var.phase == "test" ? 1 : 0
+  count  = contains(["metric", "test"], var.phase) ? 1 : 0
   name   = "${local.prefix}-${var.control}"
   filter = local.filters[var.control]
 
