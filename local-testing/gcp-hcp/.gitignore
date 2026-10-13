@@ -1,0 +1,5 @@
+*.tfplan
+*.plan.json
+hcp-plan.json
+*.tfstate
+*.tfstate.backup
