@@ -12,16 +12,16 @@ Add these Terraform variables in the HCP workspace:
 | --- | --- |
 | `project_id` | ID of a disposable GCP test project |
 | `phase` | `bootstrap`, `metric`, or `test` |
-| `control` | One of `sql`, `ownership`, `audit`, `role`, `firewall`, `route`, `network`, or `storage` |
+| `control` | `all` to batch 2.5-2.12 together, or one of `sql`, `ownership`, `audit`, `role`, `firewall`, `route`, `network`, or `storage` |
 
 Configure GCP authentication as a sensitive environment variable supported by the Google provider, preferably through workload identity. If using a service-account credential, use the `GOOGLE_CREDENTIALS` environment variable, store it only as sensitive in HCP, and grant only the permissions needed to create and delete these test resources. Do not commit credential files or paste credentials into chat. Required APIs must already be enabled in the disposable project; this root does not enable APIs.
 
 ## Run sequence
 
 1. With `phase = bootstrap`, queue a plan and review it. Apply only if it contains the Pub/Sub topic and notification channel, with no unrelated changes.
-2. Set one `control` and `phase = metric`. Queue a fresh plan and apply only after reviewing it. This creates the control's log-based metric without its alert.
-3. Wait up to 10 minutes for Cloud Monitoring to make the new metric available. Then set `phase = test`, queue a fresh plan, and ensure it proposes only the matching alert. Do not apply until the exported plan passes the matching `tfpolicy` check below.
-4. To test another control, set its `control` value and return `phase` to `metric`. Review the planned metric replacement and alert removal, apply, wait for propagation, then return to `phase = test` and check the alert plan.
+2. Set `control = all` and `phase = metric`. Queue a fresh plan and confirm it creates eight log-based metrics while leaving the topic and channel unchanged. Apply only after reviewing it.
+3. Wait up to 10 minutes for Cloud Monitoring to make the metrics available. Then set `phase = test`, queue a fresh plan, and confirm it creates eight matching alerts without unrelated changes. Export the plan and run the `all` policy check below before applying.
+4. To test one control alone, set `control` to its name instead of `all`; the same metric, propagation, alert, and policy-check phases apply.
 5. When finished, queue a destroy plan, review it, and confirm it removes only resources from this test workspace. Verify the workspace state is empty afterward.
 
 Never apply a plan for another project or an unexpected resource set. The test can create billable resources while they exist. HCP apply is not itself gated by `tfpolicy`; perform the plan check before approving apply.
@@ -32,10 +32,10 @@ Install the same released `tfpolicy` version used by CI (0.4.0 as of 2026-10-13)
 
 ```sh
 node local-testing/gcp-hcp/download-plan.mjs run-REPLACE_WITH_RUN_ID /tmp/gcp-hcp-plan.json
-node local-testing/gcp-hcp/check-plan.mjs /tmp/gcp-hcp-plan.json sql
+node local-testing/gcp-hcp/check-plan.mjs /tmp/gcp-hcp-plan.json all
 ```
 
-Pass the matching control to the checker: `sql` (2.12), `ownership` (2.5), `audit` (2.6), `role` (2.7), `firewall` (2.8), `route` (2.9), `network` (2.10), or `storage` (2.11). The checker refuses plans missing either a metric or alert resource. Plan JSON may contain sensitive values; keep it outside the repository and delete it after checking.
+Pass `all` to check every control 2.5-2.12 together, or one control to check it alone: `sql` (2.12), `ownership` (2.5), `audit` (2.6), `role` (2.7), `firewall` (2.8), `route` (2.9), `network` (2.10), or `storage` (2.11). The checker refuses plans missing either a metric or alert resource. Plan JSON may contain sensitive values; keep it outside the repository and delete it after checking.
 
 The helper uses HCP Terraform's [plan JSON output API](https://developer.hashicorp.com/terraform/cloud-docs/api-docs/plans#retrieve-the-json-execution-plan). The local `tfpolicy` check is an additional manual step, not native HCP policy enforcement.
 

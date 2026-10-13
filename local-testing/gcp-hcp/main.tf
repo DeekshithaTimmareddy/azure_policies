@@ -20,8 +20,8 @@ variable "control" {
   default     = "sql"
 
   validation {
-    condition     = contains(["sql", "ownership", "audit", "role", "firewall", "route", "network", "storage"], var.control)
-    error_message = "Choose sql, ownership, audit, role, firewall, route, network, or storage."
+    condition     = contains(["all", "sql", "ownership", "audit", "role", "firewall", "route", "network", "storage"], var.control)
+    error_message = "Choose all, sql, ownership, audit, role, firewall, route, network, or storage."
   }
 }
 
@@ -41,7 +41,9 @@ provider "google" {
 }
 
 locals {
-  prefix = "gcp-cis-hcp-20261013"
+  prefix            = "gcp-cis-hcp-20261013"
+  all_controls      = ["sql", "ownership", "audit", "role", "firewall", "route", "network", "storage"]
+  selected_controls = var.control == "all" ? local.all_controls : [var.control]
   filters = {
     sql       = "protoPayload.methodName=\"cloudsql.instances.update\""
     ownership = "(protoPayload.serviceName=\"cloudresourcemanager.googleapis.com\") AND (ProjectOwnership OR projectOwnerInvitee) OR (protoPayload.serviceData.policyDelta.bindingDeltas.action=\"REMOVE\" AND protoPayload.serviceData.policyDelta.bindingDeltas.role=\"roles/owner\") OR (protoPayload.serviceData.policyDelta.bindingDeltas.action=\"ADD\" AND protoPayload.serviceData.policyDelta.bindingDeltas.role=\"roles/owner\")"
@@ -68,9 +70,9 @@ resource "google_monitoring_notification_channel" "local_test" {
 }
 
 resource "google_logging_metric" "local_test" {
-  count  = contains(["metric", "test"], var.phase) ? 1 : 0
-  name   = "${local.prefix}-${var.control}"
-  filter = local.filters[var.control]
+  count  = contains(["metric", "test"], var.phase) ? length(local.selected_controls) : 0
+  name   = "${local.prefix}-${local.selected_controls[count.index]}"
+  filter = local.filters[local.selected_controls[count.index]]
 
   metric_descriptor {
     metric_kind = "DELTA"
@@ -80,17 +82,17 @@ resource "google_logging_metric" "local_test" {
 }
 
 resource "google_monitoring_alert_policy" "local_test" {
-  count                 = var.phase == "test" ? 1 : 0
-  display_name          = "${local.prefix}-${var.control}-alert"
+  count                 = var.phase == "test" ? length(local.selected_controls) : 0
+  display_name          = "${local.prefix}-${local.selected_controls[count.index]}-alert"
   combiner              = "OR"
   enabled               = true
   notification_channels = [google_monitoring_notification_channel.local_test.name]
 
   conditions {
-    display_name = "${var.control} changes"
+    display_name = "${local.selected_controls[count.index]} changes"
 
     condition_threshold {
-      filter          = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.local_test[0].name}\" AND resource.type=\"${var.control == "storage" ? "gcs_bucket" : "global"}\""
+      filter          = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.local_test[count.index].name}\" AND resource.type=\"${local.selected_controls[count.index] == "storage" ? "gcs_bucket" : "global"}\""
       comparison      = "COMPARISON_GT"
       threshold_value = 0
       duration        = "0s"

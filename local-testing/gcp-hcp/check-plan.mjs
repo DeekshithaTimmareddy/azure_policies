@@ -16,9 +16,11 @@ const policies = {
   storage: "2-11-storage-iam-change-alert.policy.hcl",
 };
 
-if (!planPath || !policies[control]) {
-  throw new Error("Usage: node check-plan.mjs PLAN.json CONTROL");
+if (!planPath || (!policies[control] && control !== "all")) {
+  throw new Error("Usage: node check-plan.mjs PLAN.json CONTROL (or all)");
 }
+
+const selectedPolicies = control === "all" ? Object.values(policies) : [policies[control]];
 
 const plan = JSON.parse(readFileSync(planPath, "utf8"));
 const root = (plan.planned_values ?? plan.values)?.root_module;
@@ -66,8 +68,17 @@ ${policyResources.map((resource, index) => `resource ${JSON.stringify(resource.t
 `).join("\n")}`;
 
 try {
-  const fixturePath = join(testsDirectory, `${policies[control].replace(".policy.hcl", ".policytest.hcl")}`);
-  writeFileSync(fixturePath, fixture);
+  for (const policyName of selectedPolicies) {
+    const fixture = `policytest {
+  targets = [${JSON.stringify(policyName)}]
+}
+${policyResources.map((resource, index) => `resource ${JSON.stringify(resource.type)} ${JSON.stringify(`planned_${index}`)} {
+  attrs = ${JSON.stringify(policyAttributes(resource))}
+}
+`).join("\n")}`;
+    const fixturePath = join(testsDirectory, policyName.replace(".policy.hcl", ".policytest.hcl"));
+    writeFileSync(fixturePath, fixture);
+  }
   const result = spawnSync(
     "tfpolicy",
     ["test", `--policies=${policyDirectory}`, `--tests=${testsDirectory}`],
@@ -75,7 +86,7 @@ try {
   );
   if (result.error) throw result.error;
   if (result.status !== 0) process.exitCode = result.status ?? 1;
-  else console.log(`PASS: ${policies[control]} against exported HCP plan`);
+  else console.log(`PASS: ${selectedPolicies.join(", ")} against exported HCP plan`);
 } finally {
   rmSync(testsDirectory, { recursive: true, force: true });
 }
